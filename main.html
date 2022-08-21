@@ -1,0 +1,4111 @@
+<!DOCTYPE html>
+	<html>
+		<head>
+		
+			<meta http-equiv="Content-Security-Policy" content="script-src 'self'" />
+		
+			<script type="text/javascript" src="settings.js"></script>
+			<script type="text/javascript" src="js/lib/jwt-decode.min.js"></script>
+			<script type="text/javascript" src="js/lib/bluebird/bluebird.min.js"></script>
+			<script type="text/javascript" src="js/lib/bluebird/Q.Bluebird.bridge.js"></script>
+			<script type="text/javascript" src="js/lib/sjcl/sjcl.js"></script>
+			<script type="text/javascript" src="js/lib/sjcl-scrypt/sjcl-scrypt.js"></script>
+			<script type="text/javascript" src="js/lib/jquery-1.11.0.min.js"></script>
+			<script type="text/javascript" src="js/lib/jqueryPlugins/jquery.cookie.js"></script>
+			<script type="text/javascript" src="js/lib/jqueryPlugins/jquery-ui-1.10.4.custom.min.js"></script>
+			<script type="text/javascript" src="js/lib/jqueryPlugins/jquery.multiselect.min.js"></script>
+			<script type="text/javascript" src="js/lib/jqueryPlugins/jquery.kinetic.min.js"></script>
+			<script type="text/javascript" src="js/lib/jqueryPlugins/jquery.textfill.min.js"></script>
+			<script type="text/javascript" src="js/lib/googleAnalytics/ga-interceptor.js"></script>
+			<script type="text/javascript" src="js/lib/googleAnalytics/hmh-google-analytics.js"></script>
+			<script type="text/javascript" src="js/lib/bitjs/io.js"></script>
+			<script type="text/javascript" src="js/lib/bitjs/archive.js"></script>
+			<script type="text/javascript" src="js/lib/pako/pako_inflate.js"></script>
+			<script type="text/javascript" src="dloApiBase64.js"></script>
+			<script type="text/javascript" src="rceApiBase64.js"></script>
+			<script type="text/javascript" src="js/hmh/utils.min.js"></script>
+			<script type="text/javascript" src="js/lib/underscore/underscore.js"></script>
+			<script type="text/javascript" src="js/lib/backbone/backbone-min.js"></script>
+			<script type="text/javascript" src="js/hmh/services.min.js"></script>
+			<script type="text/javascript" src="js/lib/mustache/mustache.js"></script>
+			<script type="text/javascript" src="js/lib/marionette/backbone.marionette.js"></script>
+    	 	<script type="text/javascript" src="js/api.js"></script>
+      		<script type="text/javascript" src="js/lib/sockjs/sockjs-1.0.3.min.js"></script>
+	     	<script type="text/javascript" src="js/hmh/models.min.js"></script>
+	     	<script type="text/javascript" src="js/hmh/viewModels.min.js"></script>
+	     	<script type="text/javascript" src="BridgedWebview.js"></script>
+	     	<script type="text/javascript" src="js/hmh/boot.min.js"></script>
+	     	<script type="text/javascript" src="js/hmh/modules.min.js"></script>
+	     	<script type="text/javascript" src="main.js"></script>
+			
+			<link rel="stylesheet" href="main.css">
+			
+		</head>
+	<body>
+		<div id="region_sideMenu"></div>
+		<div id="bodyContainer">
+			<div id="contentContainer">
+				<!--Close button needs to go below the status bar so it is clickable in windows and chromium.-->
+				<div id="region_statusbar" class="mainRegion"></div>
+				<div id="bb-closeButton" class="closeButton"></div>
+				<div id="region_main" class="mainRegion"></div>
+				<div id="region_sync_notifications" class="syncNotificationRegion"></div>
+				<div id="mask"></div>
+				<div id="region_collabTools"></div>
+			</div>
+			<div id="region_myStuff"></div>
+			<div id="region_noteTool"></div>
+			<div id="region_globalResourceViewerModule"></div>
+			<div id="region_fullScreenView"></div>
+		</div>
+		<div id="popupsContainer"></div>
+		<script type="text/template" id="template_circularProgressIndicator">
+	<div class="outerBorder">
+		<div class="innerBorder">
+			<div class="innerBorderShadow"></div>
+			<div class="score bb-score"></div>
+		</div>
+		<div class="highlight"></div>
+	</div>
+</script>
+<script type="text/template"  id="template_LessonActionsView">
+	<div class="lessonActionsWrapper">
+		<div class="actionsDisplayTitle">{{{title}}}</div>
+		<div class="actionsDisplaySubtitle">{{{subTitle}}}</div>
+		{{#showCloseButton}}
+		<div class="bb-close closeBtn"></div>
+		{{/showCloseButton}}
+		<div>
+			<div class="actionTrayItem bb-viewLesson {{^viewButtonEnabled}}disabled{{/viewButtonEnabled}}">
+				<div class="actionTrayButton viewLessonButton"></div>
+				<div class="actionTrayItemLabel">View</div>
+			</div>
+
+			{{#showStandardsButton}}
+			<div class="actionTrayItem bb-viewStandards {{^standardsButtonEnabled}}disabled{{/standardsButtonEnabled}}">
+				<div class="actionTrayButton standardsButton"></div>
+				<div class="actionTrayItemLabel">Standards</div>
+			</div>
+			{{/showStandardsButton}}
+
+			<div class="actionTrayItem bb-viewResources {{^resourcesButtonEnabled}}disabled{{/resourcesButtonEnabled}}">
+				<div class="actionTrayButton resourcesButton"></div>
+				<div class="actionTrayItemLabel">Resources</div>
+			</div>
+		</div>
+		<div>
+			<div class="actionTrayItem bb-assignLesson {{^assignButtonEnabled}}disabled{{/assignButtonEnabled}}">
+				<div class="actionTrayButton assignButton"></div>
+				<div class="actionTrayItemLabel">Assign</div>
+			</div>
+
+			<!-- Only show this button for non custom lessons -->
+			{{^editButtonShown}}
+			<div class="actionTrayItem bb-customizeLesson {{^customizeButtonEnabled}}disabled{{/customizeButtonEnabled}}">
+				<div class="actionTrayButton customizeButton"></div>
+				<div class="actionTrayItemLabel">Customize</div>
+			</div>
+			{{/editButtonShown}}
+
+			<!-- Only show this button for custom lessons -->
+			{{#editButtonShown}}
+			<div class="actionTrayItem bb-editLesson">
+				<div class="actionTrayButton editButton"></div>
+				<div class="actionTrayItemLabel">Edit</div>
+			</div>
+			{{/editButtonShown}}
+
+			<!-- Only show this button for custom lessons -->
+			{{#deleteButtonShown}}
+			<div class="actionTrayItem bb-deleteCustomLesson deleteCustomLesson">
+				<div class="actionTrayButton deleteCustomLesson"></div>
+				<div class="actionTrayItemLabel">Delete</div>
+			</div>
+			{{/deleteButtonShown}}
+
+			<!-- Only show this button for non custom lessons -->
+			{{#downloadStateModel}}
+			<div class="actionTrayItem downloadWrapper bb-downloadWrapper">
+				<div class="actionTrayButton bb-downloadCloudWrapper bb-downloadContentButton downloadProgressWrapper"></div>
+				<div class="actionTrayButton bb-manageContentButton manageContentButton"></div>
+				<div class="actionTrayItemLabel bb-downloadLabel">Download</div>
+				<hmh-spinner class="bb-spinnerContainer spinner hidden"></hmh-spinner>
+			</div>
+			{{/downloadStateModel}}
+		</div>
+
+	</div>
+</script>
+<script type="text/template" id="template_pinKeyboardView">
+    <div class="pinKeyboardView-container top">
+	    <div class="innerContainer">
+	        <input type="text" id="test-pin-input" class="test-pin-input hidden" maxlength="100" placeholder="enter pin"
+	               value=""/>
+	
+	        <div class="hidden_pin">
+	            <div class="pin_title">Enter a passcode</div>
+	            <div class="circles">
+	                <div class="circle1"></div>
+	                <div class="circle2"></div>
+	                <div class="circle3"></div>
+	                <div class="circle4"></div>
+	            </div>
+	        </div>
+	
+	        <table class="ssoPinNumbersKeypad">
+	            <tr>
+	                <td class="pin_num" data-num="1"><div class="number">1</div>
+	                    <div class="characters"> </div>
+	                </td>
+	                <td class="pin_num" data-num="2"><div class="number">2</div>
+	                    <div class="characters">ABC</div>
+	                </td>
+	                <td class="pin_num" data-num="3"><div class="number">3</div>
+	                    <div class="characters">DEF</div>
+	                </td>
+	            </tr>
+	            <tr>
+	                <td class="pin_num" data-num="4"><div class="number">4</div>
+	                    <div class="characters">GHI</div>
+	                </td>
+	                <td class="pin_num" data-num="5"><div class="number">5</div>
+	                    <div class="characters">JKL</div>
+	                </td>
+	                <td class="pin_num" data-num="6"><div class="number">6</div>
+	                    <div class="characters">MNO</div>
+	                </td>
+	            </tr>
+	            <tr>
+	                <td class="pin_num" data-num="7"><div class="number">7</div>
+	                    <div class="characters">PQRS</div>
+	                </td>
+	                <td class="pin_num" data-num="8"><div class="number">8</div>
+	                    <div class="characters">TUV</div>
+	                </td>
+	                <td class="pin_num" data-num="9"><div class="number">9</div>
+	                    <div class="characters">WXYZ</div>
+	                </td>
+	            </tr>
+	            <tr>
+	                <td style="border-bottom-left-radius: 5px;"></td>
+	                <td class="pin_num" data-num="0"><div class="number">0</div></td>
+	                <td class="pin_delete" style="border-bottom-right-radius: 5px;">
+	                    <div class="characters">DELETE</div>
+	                </td>
+	            </tr>
+	        </table>
+        </div>
+    	<div class="errorContainer">	
+    		<div class="errorMessageBorder">
+    			<div class="triangle"></div>
+    			<div class="errorMessage"></div>
+    		</div>
+    	</div>
+    </div>
+    
+    
+</script>
+<script type="text/template" id="template_stackNavigationLayout">
+    <div class="region_stackNavigationLayout_main"></div>
+</script>
+
+<script type="text/template" id="template_stackNavigationLayout_viewWrapper">
+    <div class="region_stackNavigationLayout_wrapperContent"></div>
+    <div class="bb_transparentInteractionMask transparentInteractionMask hidden"></div>
+</script>
+
+<script type="text/template" id="template_widgetsModule_calendarView">
+	<div class="assignmentCalendarView_header">
+		<div class="calendarHeaderLabel">{{headerTitle}}</div>
+		<div class="bb-todayButton todayButton">Today</div>
+	</div>
+	<div class="bb-monthContainer assignmentCalendarView_monthList"></div>
+</script>
+
+<script type="text/template" id="template_widgetsModule_calendarView_monthView">
+	<div class="monthView_header">{{fullTitle}}</div>
+	<div class="bb-dayContainer dayContainer"></div>
+</script>
+
+<script type="text/template" id="template_widgetsModule_calendarView_dayView">
+	<div class="dateHighlightView"></div>
+	<div class="dateCircleView">{{{dayInMonth}}}</div>
+	<div class="assignmentIndicator"></div>
+</script>
+
+<script type="text/template" id="template_widgetsModule_paginatedCalendarView">
+	<div class="calendarPaginationButtonsContainer">
+		<div class="bb-pageLeft leftPaginationButton"></div>
+		<div class="bb-pageRight rightPaginationButton"></div>
+	</div>
+	<div class="bb-paginationCalendarContainer"></div>
+</script>
+<script type="text/template" id="template_comboBoxItemView">
+    <input class="comboBox"/>
+    <div class="arrowIcon"></div>
+</script>
+<script type="text/template" id="template_datePickerWidget">
+    <div class="bb-description datePickerDescription">{{description}}</div>
+	<div class="bb-datePickerDisplay datePicker cursorPointer">
+		<input type="hidden" class="bb-date bb-datePickerInput datePickerInput" name="date"/>
+        <span class="bb-monthName monthName"></span>
+		<span class="bb-dayNum dayNum "></span>
+        <span class="bb-year year"></span>
+	</div>
+</script>
+<script type="text/template" id="DownloadCloud">
+	<div class="bb-cloudWrapper cloudWrapper">
+		<div class="bb-filledCloud filledCloud"></div>
+		<div class="bb-downloadCloudProgress downloadCloudProgressContainer progressMask">
+			<div class="bb-downloadCloudProgressInner progressMask"></div>
+		</div>
+		<div class="bb-cloudOutline cloudOutline"></div>
+	</div>
+	<div class="bb-arrow arrow"></div>
+	<div class="bb-cancelDownloadButton cancelDownloadButton"></div>
+	<hmh-spinner class="bb-spinner hidden"></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_popoverWidget">
+    <div class="popoverCaratWrapper">
+        <div class="popoverCarat"></div>
+    </div>
+    <div class="popoverContent"></div>
+</script>
+<script type="text/template" id="template_calendarPopupView">
+	<div class="popoverCaratWrapper top">
+		<div class="popoverCarat top"></div>
+	</div>
+	<div class="prevMonth"><</div>
+	<div class="nextMonth">></div>
+	<div class="monthViewRegion"></div>
+</script>
+<script type="text/template" id="template_ProgramSelectorDropdown">
+	<div class="programButton">
+		<div class="selectedProgramText bb-selectedProgramText text-ellipsis"></div>
+		<div class="programSelectorIcon"></div>
+	</div>
+	<div class="programSelectorClickMask bb-clickMask hidden"></div>
+	<div class="bb-programList programList hidden"></div>
+</script>
+
+<script type="text/template" id="template_ProgramSelectorItemView">
+	{{courseTitle}}
+</script>
+<script type="text/template" id="template_ResourceSelectorDropdown">
+    <div class="bb-resourceSelectorLabel resourceSelectorLabel">Select a resource.</div>
+    <div class="resourceButton">
+        <div class="selectedResourceText bb-selectedResourceText text-ellipsis"></div>
+        <div class="resourceSelectorIcon"></div>
+    </div>
+    <div class="resourceSelectorClickMask bb-clickMask hidden"></div>
+    <div class="bb-resourceList resourceList hidden"></div>
+</script>
+
+<script type="text/template" id="template_ResourceSelectorItemView">
+        {{title}}
+</script>
+
+<script type="text/template" id="template_TreeViewWidget">
+	<div class="bb-scrollContainer scrollContainer verticalScrollOnly">
+		<div class="emptyMessage bb-emptyMessage {{^itemTreeIsEmpty}}hidden{{/itemTreeIsEmpty}}">{{emptyTreeMessage}}</div>
+		<ol class="bb-topLevelItems toc"></ol>
+	</div>
+</script>
+
+<script type="text/template" id="template_TreeViewWidget_ItemView">
+	<div class="relative bb-itemWrapper itemWrapper">
+		<div class="bb-displayItemWrapper displayItemWrapper">
+			<div class="titleHolder">
+				<div class="titleLine" title="{{plainTextDisplayTitle}}">{{{displayTitle}}}</div>
+				<div class="subtitleLine" title="{{plainTextDisplaySubtitle}}">{{{displaySubtitle}}}</div>
+			</div>
+			<div class="bb-displayedFeature displayedFeature"></div>
+			<div class="bb-downloadedIndicator downloadedIndicator"></div>
+			<div class="bb-grabberButton grabberButton"></div>
+			 
+			<div class="bb-nonTrayCloudWrapper bb-downloadContentButton downloadProgressWrapper"></div>
+			<div class="bb-manageContentButton bb-inlineBtn manageContentButton inlineManageBtn"></div>
+			<div class="bb-submenuControlButton trayToggle"></div>
+			<div class="activeIcon"></div>
+		</div>
+		<div class="bb-controlTray controlTray">
+			<div class="bb-standardsBtn standardsBtn trayBtn">
+				<span class="standardsImg trayBtnImg"></span>
+			</div><!-- comment to fix inline-block spacing
+			--><div class="bb-downloadStateWrapper downloadStateWrapper trayBtn">
+				<div class="bb-manageContentButton bb-trayBtn manageContentButton trayManageBtn hidden"></div>
+				<div class="bb-downloadCloudTrayWrapper bb-downloadContentButton downloadProgressWrapper"></div>
+			</div>
+		</div>
+	</div>
+	<ol class="bb-children children"></ol>
+</script>
+<script type="text/template" id="template_AssignmentInfoPopup">
+	<div class="assignmentInfoPopupBody  {{#hideNotes}}hideNotes{{/hideNotes}}">
+		<div class="bb-closeButton closePopupButton bb-cancel"></div>
+		<div class="title">{{title}}</div>
+		<div class="bb-dueDate dueDate">{{dueDate}}</div>
+		<div class="bb-statusStateImg statusStateImg {{status}}"></div>
+		<div class="bb-statusLabel statusLabel">{{statusLabel}}</div>
+		{{#downloaded}}
+			<div class="downloadIndicator"></div>
+		{{/downloaded}}
+		<hmh-spinner class="loadingView {{^loading}}hidden{{/loading}}"></hmh-spinner>
+		<div class="notesWrapper">
+			<div class="notes">{{notes}}</div>
+		</div>
+		<div class="bb-startButton startButton">Start</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_CustomPopup">
+ 	<div class="assignmentInfoPopupBody">
+ 		<div class="bb-closeButton closePopupButton bb-cancel"></div>
+ 		<div class="titleContainer">
+ 			<div class="title">{{title}}</div>
+ 		</div>
+ 		<div class="buttonsContainer"> 
+			<div class="bb-firstButton firstButton">{{firstButtonText}}</div>
+			<div class="bb-secondButton secondButton">{{secondButtonText}}</div>
+ 		</div>
+ 	</div>
+ </script>
+<script type="text/template" id="template_LessonExplorerModule_DownloadPopup">
+	<div class="notificationWrapper">
+		<div class="infoWrapper">
+			<div class="textWrapper">
+				<div class="notificationPrompt">{{{lessonTitle}}}</div>
+
+		        <hmh-spinner class="spinner bb-spinner hidden" ></hmh-spinner>
+		        
+                {{#popupTitle}}
+					<div class="downloadPrompt">{{popupTitle}}</div>
+                {{/popupTitle}}
+			</div>
+		</div>
+
+		{{#showOptions}}
+			<span class="optionsWrapper">
+				<input type="radio" name="dlOption" value="option1" class="option1" id="option1" {{#option1Selected}}checked="checked"{{/option1Selected}} ><label class="dlOptionLabel" for="option1">{{option1Text}}</label><br>
+				<input type="radio" name="dlOption" value="option2" class="option2" id="option2" {{#option2Selected}}checked="checked"{{/option2Selected}}><label class="dlOptionLabel" for="option2">{{option2Text}}</label>
+			</span>
+		{{/showOptions}}
+
+		{{#showCheckbox}}
+			<span class="optionsWrapper">
+				<input type="checkbox" name="dlOption" class="checkbox" id="checkbox1" {{#checkBoxSelected}}checked="checked"{{/checkBoxSelected}} ><label class="dlOptionLabel" for="checkbox1">{{checkboxText}}</label>
+			</span>
+		{{/showCheckbox}}
+
+        {{#footerMessage}}
+			<div class="additionalResourceDownloadMessage">{{footerMessage}}</div>
+        {{/footerMessage}}
+
+		<div class="notificationSeparator"></div>
+
+		<div class="buttonWrapper">
+			<div class="bb-cancel notificationButton cancelButton"></div>
+			<div class="bb-confirm notificationButton confirmButton"></div>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_loadingSpinnerPopup">
+	<div class="popupWrapper">
+		<hmh-spinner class="spinner"></hmh-spinner>
+		<div class="textWrapper">
+			{{promptText}}
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_notificationPopup">
+	<div class="notificationWrapper {{size}}">
+		<div class="infoWrapper">
+			<div class="notificationIcon {{iconStyle}}"></div>
+			<div class="textWrapper">
+				<div class="notificationPrompt">{{promptText}}</div>
+				<div class="notificationInfo">{{infoText}}</div>
+			</div>
+		</div>
+		<div class="notificationNote {{^note}}hidden{{/note}}">{{note}}</div>
+		<div class="notificationSeparator"></div>
+		<div class="buttonWrapper {{#textButtons}}hidden{{/textButtons}}">
+			<div class="bb-cancel notificationButton cancelButton {{^showCancel}}hidden{{/showCancel}}"></div>
+			<div class="bb-confirm notificationButton confirmButton"></div>
+		</div>
+		<div class="textButtonWrapper {{^textButtons}}hidden{{/textButtons}}">
+			<div class="bb-button1 notificationTextButton">{{buttonText1}}</div>
+			<div class="bb-button2 notificationTextButton {{^buttonText2}}hidden{{/buttonText2}}">{{buttonText2}}</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_notificationPopupWithDetails">
+	<div class="notificationDetailsWrapper">
+		<div class="infoWrapper">
+			<div class="notificationIcon"/>
+			<div class="notificationPrompt">{{promptText}}</div>
+			<div class="bb-notificationDetailsToggle notificationDetailsToggle">
+				<div class="bb-showDetails showDetails">Show Details</div>
+			</div>
+			<div class="bb-notificationDetails notificationDetails hidden">{{detailText}}</div>
+		</div>
+			<div class="notificationSeparator"></div>
+			<div class="buttonWrapper">
+				<div class="bb-cancel notificationButton cancelButton {{^showCancel}}hidden{{/showCancel}}"></div>
+				<div class="bb-confirm notificationButton confirmButton"></div>
+			</div>
+
+	</div>
+</script>
+<script type="text/template" id="template_passcodeChangePopup">
+        <div class="passcodeFlexContainer">
+            <div class="passcodeChangeContainer"> 
+                <div class="passcodeChangeHeader">
+                    Change Passcode
+                </div>
+                <div class="closeButton bb-cancel"></div>
+                <div class="passcodeChangePinWidgetRegion">
+                </div>
+            </div>
+        </div>
+</script>
+<script type="text/template" id="template_calendarDateRangeButtons">
+	<div class="startDate {{^isNew}}disabled{{/isNew}}">
+		<div class="date">11/6/2014</div>
+		<div class="label">Start</div>
+		<div class="calendarStartPopupRegion hidden"></div>
+	</div>
+	<div class="endDate">
+		<div class="endDateWrapper {{^isNew}}dateSet{{/isNew}}">
+			<div class="date">11/6/2014</div>
+			<div class="label">Due</div>
+		</div>
+		<div class="calendarEndPopupRegion hidden"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentNavigatorModule_editAssignmentView">
+	<div class="createAssignmentHeader">{{headerLabelText}}</div>
+
+	<div class="assignmentEditWrapper">
+		<input class="titleInput" type="text" value="{{title}}">
+
+		<div class="lowerAssignmentEditRow">
+			<div class="assignmentEditLeftColumn">
+				<div class="dateContainerRegion"></div>
+				<div class="adaptiveToggle {{^adaptiveOptionsShown}}hidden{{/adaptiveOptionsShown}}
+					{{^adaptiveOptionsEnabled}}disabled{{/adaptiveOptionsEnabled}}">
+					<div class="adaptiveOption adaptiveAO">Assignment Only</div>
+					<div class="adaptiveOption adaptiveDIE">Daily Intervention & Enrichment</div>
+					<div class="adaptiveOption adaptivePSP">Personal Study Plan</div>
+				</div>
+				<div class="notesArea">
+					<textarea class="assignmentCreateNotes" maxlength="500" placeholder="Notes Area...">{{notes}}</textarea>
+					<div class="characterCountWrapper">
+						Characters: <span class="bb-characterCount characterCount"></span>/{{maxCharCount}}
+					</div>
+				</div>
+			</div>
+			<div class="assignmentEditRosterColumn">
+				<div class="rosterHeader">
+					<div class="rosterHeaderSectionName text-ellipsis">{{sectionName}}</div>
+
+					<div class="bb-switcher switcher">
+						<div class=label>All</div>
+						<div class="participantToggleSwitch onoffswitch">
+							<input type="checkbox" name="onoffswitch"
+								   class="onoffswitch-checkbox hidden">
+							<label class="onoffswitch-label" for="toggleSwitch">
+								<div class="onoffswitch-inner"></div>
+								<div class="onoffswitch-switch"></div>
+							</label>
+						</div>
+					</div>
+				</div>
+				<div class="rosterList"></div>
+			</div>
+		</div>
+		<div class="assignmentEditButtonWrapper">
+			<div class="assignmentEditViewButton assignmentEditButton">View</div>
+			<div class="assignmentEditSaveButton assignmentEditButton">Assign</div>
+		</div>
+
+		<hmh-spinner class="bb-loadingSpinner"></hmh-spinner>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentNavigatorModule_editAssignment_studentCell">
+	<div class="studentSelectToggle"></div>
+	<div class="studentName">{{displayName}}</div>
+</script>
+
+<script type="text/template" id="template_assignmentNavigatorModule_availableAssignmentsView">
+	<div class="createAssignmentHeader">
+		<div class="bbSectionTitle sectionTitle"></div>
+		<div class="excludedPmtGlobalContainer">
+			<div class="stepTitle">Create Assignment (Step 1)</div>
+			<div class="excludedPmtContainer hidden">
+				<span class="excludedPmtTitle">Where are my PMT resources?</span>
+				<span class="assigmentsInfoButton"></span>
+			</div>
+		</div>
+	</div>
+	<div class="popUpContainer hidden">
+		<div class="assignmentInfoPopupRegion"></div>
+	</div>
+	<div class="assignmentResourceWrapper">
+		<div class="leftBarWrapper">
+			<div class="region_programSelector"></div>
+			<div class="categoriesContainer">
+				<div class="region_TreeViewWidget"></div>
+			</div>
+			<hmh-spinner class="bb-loadingSpinner mainSpinner" ></hmh-spinner>
+		</div>
+		<div class="region_availableAssignmentsView_resourceList"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentNavigatorModule_availableAssignmentsView_assignableResourceList">
+	<div class="availableAssignmentListTitleContainer">
+		<span class="availableAssignmentListResourceCategoryTitle">{{resourceCategoryTitle}}</span>
+		<span class="availableAssignmentListResourceItemTitle">{{title}}</span>
+	</div>
+    <div class="filterTypesContainer hidden">
+        <div class="filterModeBtn" data-type="1">
+            <div class="hollowCircle"><div class="filledCircle"></div></div>
+            <div class="label">All</div>
+        </div>
+        <div class="filterModeBtn" data-type="2">
+            <div class="hollowCircle">
+                <div class="filledCircle"></div>
+            </div>
+            <div class="label">Lessons</div>
+        </div>
+        <div class="filterModeBtn" data-type="3">
+            <div class="hollowCircle">
+                <div class="filledCircle"></div>
+            </div>
+            <div class="label">PMT Assessment</div>
+        </div>
+        <div class="filterModeBtn" data-type="4">
+            <div class="hollowCircle">
+                <div class="filledCircle"></div>
+            </div>
+            <div class="label">Library</div>
+        </div>
+    </div>
+	<div class="resourceListHeader">
+		<div class="assignableResourcesTitle">Assignable Resources</div>
+
+		<div class="searchBox hidden">
+			<input type="text" placeholder="Search Title" class="searchField" value="{{searchTerm}}">
+			<div class="searchIcon"></div>
+		</div>
+	</div>
+    <div class="resourceListWrapper">
+        <div class="resourceList">
+    </div>
+	</div>
+</script>
+
+<script type="text/template" id="template_emptyResourceList">
+	<div class="emptyResourceListMessage">No results for this search</div>
+</script>
+
+<script type="text/template" id="template_assignmentNavigatorModule_availableAssignmentsView_assignableResourceItem">
+    <div class="resourceItemTitle text-ellipsis">
+        {{#displayTitle}}
+        {{{displayTitle}}}
+        {{/displayTitle}}
+        {{^displayTitle}}
+        {{! If no displayTitle, use title}}
+        {{{title}}}
+        {{/displayTitle}}</div>
+    <div class="bb-resourceItemMenu resourceItemMenu">
+        <div class="bb-viewBtn viewBtn">View</div>
+        <div class="bb-assignBtn assignBtn">Assign</div>
+    </div>
+</script>
+
+<script type="text/template" id="template_AssignmentCreateModule_popupItem">
+    <div class="popupTriangle"></div>
+    <div class="popupTextWrapper">
+        <div class="popupHeader"></div>
+        <div class="popupBody"></div>
+    </div>
+</script>
+<script type="text/template" id="template_AssignmentExplorerModule">
+	<div class="assignmentExplorerModule_regionWrapper">
+		<div class="region_assignmentExplorerModule_calendar"></div>
+		<div class="region_assignmentExplorerModule_assignmentNavigator"></div>
+		<hmh-spinner class="mainSpinner"></hmh-spinner>
+	</div>
+</script>
+<script type="text/template" id="template_assignmentExplorerModule_studentCurrentAssignmentListItem">
+	<div class="currentAssignmentListItemWrapper {{assignmentStatus}} {{dueStatus}}">
+		<div class="statusInfoWrapper">
+			<div class="dueStatusLabel">{{dueStatusLabel}}</div>
+			<div class="dueDateLabel">{{dueDateLabel}}</div>
+			<div class="bb-assignmentStatusImage assignmentStatusImage">{{assignmentStatusLabel}}</div>
+			<div class="returnedLabel{{^assignmentReturned}} hidden{{/assignmentReturned}}">Returned</div>
+		</div>
+		<div class="assignmentInfoWrapper">
+			<div class="bb-assignmentTitle assignmentTitle">{{title}}</div>
+			<div class="bb-syncInfoWrapper syncInfoWrapper">
+				<div class="bb-syncButton syncButton"></div>
+				<div class="bb-syncLabel syncLabel"></div>
+			</div>
+		</div>
+		<div class="bb-rightPanelButtonWrapper rightPanelButtonWrapper">
+			<div class="bb-downloadCloudWrapper downloadCloudWrapper"></div>
+			<div class="notDownloadableImg"></div>
+			<div class="bb-deleteContentButton deleteContentButton"></div>
+			<div class="bb-notesButton notesButton"></div>
+		</div>
+	</div>
+	<div class="bb-assignmentNotesWrapper assignmentNotesWrapper">
+		<div class="bb-assignmentNotes assignmentNotes">{{notes}}</div>
+	</div>
+</script>
+
+
+<script type="text/template" id="teacher_template_assignmentActionsTray">
+	<hmh-spinner class="spinnerContainer bb-editSpinner editSpinner hidden" ></hmh-spinner>
+	<div class="bb-viewButton viewWrapper actionWrapper">
+		<div class="viewButton actionButton"></div>
+		<div class="actionButtonLabel">View</div>
+	</div>
+	<div class="bb-editButton actionWrapper">
+		<div class="editButton actionButton"></div>
+		<div class="actionButtonLabel">Edit</div>
+	</div>
+	<div class="bb-copyButton copyWrapper actionWrapper">
+		<div class="copyButton actionButton"></div>
+		<div class="actionButtonLabel">Copy</div>
+	</div>
+	<div class="bb-deleteButton deleteWrapper actionWrapper">
+		<div class="deleteButton actionButton"></div>
+		<div class="actionButtonLabel">Delete</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentExplorerModule_teacherCurrentAssignmentListItem">
+	<div class="currentAssignmentListItemWrapper {{assignmentStatus}} {{dueStatus}}">
+		<div class="bb-slidableContentWrapper slidableContentWrapper">
+			<div class="statusInfoWrapper">
+				<div class="dueStatusLabel">{{dueStatusLabel}}</div>
+				<div class="dueDateLabel">{{dueDateLabel}}</div>
+				<div class="assignmentStatusWrapper">
+					<div class="bb-assignmentStatusImage assignmentStatusImage"></div>
+					<div class="bb-actionRequired actionRequired">ACTION REQUIRED</div>
+				</div>
+			</div>
+			<div class="assignmentInfoWrapper">
+				<div class="bb-assignmentTitle assignmentTitle">{{title}}</div>
+				<div class="bb-syncLabel syncLabel"></div>
+			</div>
+			<div class="rightPanelButtonWrapper">
+				<div class="bb-actionsButton actionsButton"></div>
+				<div class="bb-notesButton notesButton"></div>
+			</div>
+		</div>
+		<div class="bb-assignmentActionsTray assignmentActionsTray region-assignmentActionsTray"></div>
+	</div>
+	<div class="bb-assignmentNotesWrapper assignmentNotesWrapper">
+		<div class="bb-assignmentNotes assignmentNotes">{{notes}}</div>
+	</div>
+</script>
+
+<script type="text/template" id="KG_template_assignmentExplorerModule_currentAssignmentListItem">
+	<div class="assignmentListItemCard">
+		<div class="dateHeader">{{dueInDisplayLabel}}</div>
+		<div class="cardContentShadow">
+			<div class="cardContent">
+				<div class="assignmentImage leftImage"></div>
+				<div class="assignmentImage rightImage"></div>
+				<div class="assignmentTitle">{{title}}</div>
+				<div class="bb-statusWrapper statusStateImg"></div>
+				<div class="bb-downloadWrapper downloadWrapper">
+					<div class="bb-deleteContentButton deleteContentButton"></div>
+					<div class="bb-downloadCloudWrapper downloadProgressWrapper"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentExplorerModule_kindergartenCurrentAssignmentList_page">
+	<div class="itemContainer">
+		<div class="regionItem regionItem1"></div>
+		<div class="regionItem regionItem2"></div>
+		<div class="regionItem regionItem3"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentExplorerModule_currentAssignmentList">
+	<div class="assignmentsWrapper">
+		<button tabindex="-1" class="bb-createAssignment createAssignmentButton">Create</button>
+		<div class="displayTitleContainer">
+			<hmh-spinner class="bb-spinnerContainer spinnerContainer" ></hmh-spinner>
+			<div class="dateDisplay"></div>
+		</div>
+		<div class="currentAssignmentListWrapper">
+			<ol class="currentAssignmentList"></ol>
+		</div>
+		<div class="bb-loadingClickMask loadingClickMask"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentExplorerModule_kindergartenCurrentAssignmentList">
+	<div class="assignmentExplorerModule_header">My Activities</div>
+	<hmh-spinner class="bb-spinnerContainer white spinner" ></hmh-spinner>
+	<div class="bb-assignmentListCollectionView listView"></div>
+	<div class="bb-noDataLabel noDataLabel">No more activities due!</div>
+</script>
+
+<script type="text/template" id="template_emptyAssignmentList">
+	<div class="emptyAssignmentListMessage"></div>
+</script>
+<script type="text/template" id="template_assignmentExplorerModule_TeacherAssignmentStatusView">
+	<hmh-spinner class="bb-spinnerContainer {{^isLoading}}hidden{{/isLoading}}"></hmh-spinner>
+	<div class="header">
+		<div class="due">
+			<div class="dueStatus">{{dueStatus}}</div>
+			<div class="dueLabel">{{dueLabel}}</div>
+		</div>
+		{{#showReopen}}
+			<div class="bb-reopenBtn reopenBtn">Reopen</div>
+		{{/showReopen}}
+		<div class="assignmentTitle">{{title}}</div>
+		<div class="bb-closeBtn closeBtn"></div>
+	</div>
+	<div class="studentListArea">
+		<div class="separator"></div>
+		<div class="region_notStarted listRegion"></div>
+		<div class="region_inProgress listRegion"></div>
+		<div class="region_done listRegion"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_TeacherAssignmentStatusViewStudentList">
+	<div class="count">{{count}}</div>
+	<div class="statusLabel">{{statusLabel}}</div>
+	<div class="statusIcon {{status}}"></div>
+</script>
+
+<script type="text/template" id="template_TeacherAssignmentStatusViewStudentItem">
+	<div class="displayName text-ellipsis">{{displayName}}</div>
+	{{#showGradeCol}}
+		{{#graded}}<div class="grade">{{grade}}</div>{{/graded}}
+		{{#gradable}}<div class="bb-viewButton viewButton">View</div>{{/gradable}}
+	{{/showGradeCol}}
+	{{#returned}}
+		<div class="returnedLabel">Returned</div>
+	{{/returned}}
+</script>
+<script type="text/template" id="template_StudentAssignmentReportsModule_AssignmentQuestionsDetailView">
+	<div class="header">
+		<span class="assignmentTitle">{{assignmentTitle}}</span>
+		<span class="assignmentScore {{warmth}}">{{assignmentScore}}</span>
+		<span class="dueDate">{{dueDate}}</span>
+		<div class="bb-closeButton closeButton"></div>
+	</div>
+	<div class="bb-navLeft navLeft"></div>
+	<div class="region_questionView"></div>
+	<div class="bb-navRight navRight"></div>
+	<div class="bb-pageNumber pageNumber"></div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_QuestionView">
+	<div class="questionHeader">
+		<div class="questionScore {{correctType}}">
+			Score: <span>{{itemScore}}/{{itemMaxScore}}</span>
+		</div>
+		<div class="bb-standardsButton standardsButton">Standards</div>
+	</div>
+	<div class="standardsView">
+		<div class="standardsTopBorder"></div>
+		<div class="bb-standardText standardText"></div>
+	</div>
+	<div class="questionResponseWrapper">
+		<div class="questionNumber">QUESTION: {{itemNumber}}</div>
+		<webview class="questionWebview"></webview>
+	</div>
+</script>
+<script type="text/template" id="template_StudentAssignmentReportsModule">
+	<div class="sectionTitle">{{sectionTitle}}</div>
+	<div class="progressWrapper bb-progressWrapper">
+		<div class="contentToggle bb-contentToggle">
+			<a tabindex="-1" class="bb-toggle-left">Assignments</a>
+			<a tabindex="-1" class="bb-toggle-right">Progress</a>
+		</div>
+		<div class="leftContent region_assignments"></div>
+		<div class="rightContent region_standards"></div>
+	</div>
+	<div class="region_assignmentQuestionsDetail"></div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_KGview">
+	<div class="studentProgressHeader">Progress</div>
+	<hmh-spinner class="bb-spinnerContainer spinnerContainer hidden"></hmh-spinner>
+	<div class="region_assignments"></div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_KGview_assignmentsView">
+	<div class="bb-noDataLabel noDataLabel hidden">No Data Available</div>
+	<div class="bb-scrollLeft progressScrollLeft hidden"></div>
+	<div class="bb-scrollRight progressScrollRight hidden"></div>
+	<div class="progressSubHeader">Recent Results</div>
+	<ol></ol>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_KGview_progressItem">
+	<div class="cardImage"></div>
+	<div class="progressItemTitle">{{title}}</div>
+	<div class="scoreIndicator"></div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_AssignmentsView">
+	<div class="headerWrapper">
+		<div class="bb-displayName displayName">{{studentName}}</div>
+		<a href="#" class="bb-print print" />
+		<a href="#" class="bb-export export" />
+	</div>
+	<div class="assignmentsContainer bb-assignmentsContainer region_assignmentList"></div>
+	<div class="noDataLabel bb-noDataLabel hidden">No Data Available</div>
+	<hmh-spinner class="bb-assignmentListSpinner assignmentListSpinner"></hmh-spinner>
+	<div class="assignmentsBreakdownContainer bb-assignmentsBreakdownContainer">
+		<div class="region_assignmentBreakdown"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_AssignmentItemView">
+	<div class="assignmentItemDueDate">{{displayDueDate}}</div>
+	<div class="assignmentItemTitle {{warmth}}">{{title}}</div>
+	<div class="assignmentItemViewScore {{warmth}}"><span>{{score}}</span></div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_AssignmentsViewBreakdownView">
+	<div class="breakdownHeaderWrapper">
+		<span class="breakdownTitle bb-breakdownTitle text-ellipsis">{{title}}</span>
+	</div>
+	<div class="breakdownScrollWrapper bb-breakdownScrollWrapper">
+		<div class="breakdownWrapper bb-breakdownWrapper">
+			<ol></ol>
+		</div>
+	</div>
+	<hmh-spinner class="bb-breakdownSpinner breakdownSpinner"></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_AssignmentsViewBreakdownItemView">
+	<div class="label">{{label}}</div>
+	<div class="breakdownIcon bb-breakdownIcon"></div>
+	<div class="points points">{{itemScore}}/{{itemMaxScore}}</div>
+</script>
+<script type="text/template" id="template_StudentAssignmentReportsModule_ProgressView">
+	<div class="headerWrapper">
+		<div class="bb-headerLabel headerLabel">{{headerLabelText}}</div>
+		<a href="#" class="bb-print print" />
+		<a href="#" class="bb-export export" />
+	</div>
+	<div class="bb-progressBarWrapper progressBarWrapper">
+		<div class="averageWrapper">
+			<div class="region_radialProgress bb-radialProgress"></div>
+		</div>
+		<div class="bb-progressKeyArea progressKeyArea">
+			<div class="key">Key</div>
+			<div class="key1"></div>
+			<div class="keyLabel">90%-100%</div>
+			<div class="key2"></div>
+			<div class="keyLabel">80%-89%</div>
+			<div class="key3"></div>
+			<div class="keyLabel">70%-79%</div>
+			<div class="key4"></div>
+			<div class="keyLabel">60%-69%</div>
+			<div class="key5"></div>
+			<div class="keyLabel">0%-59%</div>
+		</div>
+	</div>
+	<hmh-spinner class="bb-standardsSpinner standardsSpinner"></hmh-spinner>
+	<div class="scoreSeparator">Scores by standard:</div>
+	<div class="progressBreakdownWrapper">
+		<div class="region_progressBreakdown"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_ProgressViewBreakdownItem">
+	<div class="scoreWrapper">
+		<div class="bb-scoreDisplay scoreDisplay {{warmth}}">{{scoreDisplay}}</div>
+	</div>
+	<div class="displayTitle"><span class="type">{{statementCode}}</span> {{organization}}</div>
+</script>
+
+<script type="text/template" id="template_StudentAssignmentReportsModule_ProgressViewRadialProgressView">
+	<div class="circle">
+		<div class="mask full">
+			<div class="fill"></div>
+		</div>
+		<div class="mask half">
+			<div class="fill"></div>
+			<div class="fill fix"></div>
+		</div>
+	</div>
+	<div class="quad filled quad1"></div>
+	<div class="quad filled quad2"></div>
+	<div class="quad filled quad3"></div>
+	<div class="quad filled quad4"></div>
+</script>
+<script type="text/template" id="template_assignmentFilterCalendarPopupView">
+	<div class="popupWrapper">
+		<div class="header">
+			<div class="bb-startDateWrapper startDateWrapper">
+				Start date: <div class="bb-startDateLabel dateLabel">{{startDateDisplay}}</div>
+			</div>
+			<div class="bb-endDateWrapper endDateWrapper">
+				End date: <div class="bb-endDateLabel dateLabel">{{endDateDisplay}}</div>
+			</div>
+		</div>
+		<div class="body">
+			<div class="bb-prevMonthButton prevMonthButton"></div>
+			<div class="monthsWrapper">
+				<div class="region_leftMonth monthRegion"></div>
+				<div class="region_rightMonth monthRegion"></div>
+			</div>
+			<div class="bb-nextMonthButton nextMonthButton"></div>
+		</div>
+		<div class="footer">
+			<a class="bb-cancelButton cancelButton">Cancel</a>
+			<a class="bb-filterButton filterButton">Filter</a>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_AssignmentReportsRosterView">
+	<div class="bb-rosterTableHeader rosterTableHeader">
+		<div class="bb-studentNameHeaderLabel studentNameHeaderLabel">
+			<hmh-spinner class="bb-spinnerStudent spinnerStudent hidden"></hmh-spinner>
+			<div class="bb-studentLabel"></div>
+			<div class="sortIcon"></div>
+		</div>
+		<div class="bb-averageHeaderLabel averageHeaderLabel">
+			<hmh-spinner class="bb-spinnerAverage spinnerAverage hidden"></hmh-spinner>
+			<div class="bb-scoreLabel"></div>
+			<div class="sortIcon"></div>
+		</div>
+	</div>
+	<div class="region_rosterTable"></div>
+</script>
+
+
+<script type="text/template" id="template_AssignmentReportsRosterTableRow">
+	<div class="fullName text-ellipsis">{{displayName}}</div>
+	<div class="bb-displayAverage displayAverage {{scoreWarmth}}">{{score}}</div>
+</script>
+
+<script type="text/template" id="template_teacherAssignmentReportsView">
+	<div class="leftContent">
+		<div class="bb-sectionTitle sectionTitle">{{sectionTitle}}</div>
+		<div class="region_roster"></div>
+	</div>
+	<div class="rightContent">
+		<div class="rightContentHeader">
+			<div class="contentToggle">
+				<a href="#" tabindex="-1" class="bb-assignmentsTabToggle">Assignments</a>
+				<a href="#" tabindex="-1" class="bb-standardsTabToggle">Progress</a>
+			</div>
+		</div>
+		<div class="classViewContent">
+			<div class="region_assignments"></div>
+			<div class="region_standards"></div>
+		</div>
+		<div class="region_assignmentBreakdown"></div>
+		<div class="region_individualStudent"></div>
+		<hmh-spinner class="bb-loadingSpinner spinner"></hmh-spinner>
+	</div>
+	<div class="region_assignmentQuestionsDetail"></div>
+</script>
+
+<script type="text/template" id="template_assignmentReportsTeacherClassView">
+	<div class="header">
+		<div class="region_dateRangePicker"></div>
+		<div class="bb-standardsHeaderLabel standardsHeaderLabel">Class Standards Progress</div>
+		<div class="bb-printReport printReport"></div>
+		<div class="bb-exportReport exportReport"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentReportsDateRangePicker">
+	<div class="start">
+		<div class="date">{{rangeStartDateDisplay}}</div>
+		<div class="label">Start</div>
+		<div class="calendarStartPopupRegion hidden"></div>
+	</div>
+	<div class="toLabel">to</div>
+	<div class="end">
+		<div class="date">{{rangeEndDateDisplay}}</div>
+		<div class="label">End</div>
+		<div class="calendarEndPopupRegion hidden"></div>
+	</div>
+</script>
+<script type="text/template" id="template_TeacherAssignmentReportsModule_AssignmentBreakdownView">
+	<div class="header">
+		<div class="bb_backBtn backBtn"></div>
+	    <div class="assignmentBreakdownHeader">{{assignmentTitle}}</div>
+	    <a href="#" class="bb-print print"></a>
+		<a href="#" class="bb-export export"></a>    
+	</div>    
+	
+    <div class="assignmentBreakdownPlaceHolder">Assignment Detail</div>
+    
+    <div class="content">
+	    <div class="bb-progressHeaderTableScrollWrapper progressHeaderTableScrollWrapper headerTableScrollWrapper">
+	        <div class="region_breakdownHeaderTable"></div>
+	    </div>
+	    <div class="bb-breakdownTableScrollWrapper breakdownTableScrollWrapper dataTableScrollWrapper">
+	        <div class="bb-breakdownTableWrapper breakdownTableWrapper">
+	            <div class="region_breakdownQuestionTable"></div>
+	        </div>
+	    </div>
+	    <hmh-spinner class="bb-spinner spinner"></hmh-spinner>
+    </div>
+
+    
+    
+</script>
+
+
+
+<script type="text/template" id="template_TeacherAssignmentReportsModule_AssignmentTableHeaderItem">
+  	<div class="wrapper">
+	    <div class="label">{{itemNumber}}</div>
+	    <div class="standards standards_{{hasStandards}}" alt="{{standardFullLabel}}" title="{{standardFullLabel}}">{{standardsShortLabel}}</div>
+    </div>
+</script>
+
+<script type="text/template" id="template_TeacherAssignmentReportsModule_AssignmentItem">
+    <div class="assignmentBreakDownDataItem {{correctType}}">
+        <div class="score">{{itemScore}} / {{itemMaxScore}}</div>
+    </div>
+</script>
+
+<script type="text/template" id="template_TeacherAssignmentReportsModule_assignmentCollectionView">
+
+</script>
+<script type="text/template" id="template_assignmentReportsClassAssignmentsView">
+	<div class="calendarHeader">
+		<div class="bb-dateRangeDisplay dateRangeDisplay">{{dateRangeDisplay}}</div>
+		<div class="bb-calendarButton calendarButton"></div>
+		<a class="bb-clearDateRangeButton clearDateRangeButton">x</a>
+		<a href="#" class="bb-print print"></a>
+		<a href="#" class="bb-export export"></a>
+	</div>
+	<div class="contentContainer">
+		<div class="bb-noDataLabel noDataLabel">No data available.</div>
+		<div class="bb-xScrollWrapper xScrollContainer">
+			<div class="region_assignmentHeader assignmentHeaderTable"></div>
+		</div>
+		<div class="bb-yScrollWrapper yScrollContainer">
+			<div class="region_assignmentScoreData assignmentDataTable"></div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentReportsAssignmentTableItem">
+	<div class="widthWrapper bb-wrapper">
+		<div class="bb-score score">{{scorePercentage}}</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_assignmentReportsAssignmentHeader">
+	<div class="headerContainer">
+		<div class="bb-assignmentDate assignmentDate">{{displayDueDate}}</div>
+		<div class="bb-assignmentTitle assignmentTitle breakdown_{{hasBreakdown}}">
+			<div>{{assignmentName}}</div>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_individualStudentDetailView">
+	<div class="header">
+		<a href="#" class="bb-back backButton"></a>
+		<div class="contentToggle">
+			<a href="#" class="bb-assignmentsToggle">Student Assignments</a>
+			<a href="#" class="bb-progressToggle">Student Progress</a>
+		</div>
+	</div>
+	<div class="content">
+		<div class="region_assignments"></div>
+		<div class="region_progress"></div>
+	</div>
+	<hmh-spinner class="bb-spinner mainSpinner"></hmh-spinner>
+</script>
+<script type="text/template" id="template_TeacherAssignmentReportsModule_ProgressView">
+	<div class="header">
+		<span class="labelClassStandards">Class Standards</span>
+		<a href="#" class="bb-print print"></a>
+		<a href="#" class="bb-export export"></a>
+	</div>
+	<div class="contentWrapper">
+		<div class="bb-progressBarWrapper progressBarWrapper">
+			<div class="averageWrapper">
+				<div class="region_radialProgress bb-radialProgress"></div>
+			</div>
+			<div class="bb-progressKeyArea progressKeyArea">
+				<div class="key">Key</div>
+				<div class="key1"></div>
+				<div class="keyLabel">90%-100%</div>
+				<div class="key2"></div>
+				<div class="keyLabel">80%-89%</div>
+				<div class="key3"></div>
+				<div class="keyLabel">70%-79%</div>
+				<div class="key4"></div>
+				<div class="keyLabel">60%-69%</div>
+				<div class="key5"></div>
+				<div class="keyLabel">0%-59%</div>
+			</div>
+		</div>
+		<div class="breakdownArea">
+			<div class="breakdownTitle">
+				<div>Scores by standard:</div>
+			</div>
+			<div class="progressBreakdownWrapper">
+				<div class="progressBreakdownScroll">
+					<div class="region_progressBreakdown"></div>
+				</div>
+			</div>
+		</div>
+		<hmh-spinner class="bb-standardsSpinner standardsSpinner" ></hmh-spinner>
+	</div>
+</script>
+
+<script type="text/template" id="template_TeacherAssignmentReportsModule_ProgressViewBreakdownItem">
+	<div class="scoreWrapper">
+		<div class="bb-scoreDisplay scoreDisplay {{warmth}}">{{scoreDisplay}}</div>
+	</div>
+	<div class="displayTitle"><span class="type">{{standardCode}}</span> {{organization}}</div>
+</script>
+
+<script type="text/template" id="template_TeacherAssignmentReportsModule_ProgressViewRadialProgressView">
+	<div class="circle">
+		<div class="mask full">
+			<div class="fill"></div>
+		</div>
+		<div class="mask half">
+			<div class="fill"></div>
+			<div class="fill fix"></div>
+		</div>
+	</div>
+	<div class="quad filled quad1"></div>
+	<div class="quad filled quad2"></div>
+	<div class="quad filled quad3"></div>
+	<div class="quad filled quad4"></div>
+</script>
+<script type="text/template" id="template_CollabModule">
+	<div class="region_telestrateView"></div>
+	<div id="collabSidebar">
+		<div class="toolbarHeader">
+			<div class="headerTitle">Collaborative Classroom</div>
+			<div class="bb-statusContainer headerStatusContainer">
+				<div class="bb-groupStatus participantsStatus"></div>
+				<div class="bb-handStatus handsStatus {{#enableRaiseHandButton}}buttonEnabled{{/enableRaiseHandButton}}"></div>
+				<div class="bb-messageStatus messagesStatus"></div>
+			</div>
+		</div>
+		<div class="region_sidebarTools"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_CollabModule_initiateSessionToolbar">
+	<button tabindex="-1" class="bb-initSessionButton initSession">{{initiateSessionText}}</button>
+	<hmh-spinner class="bb-spinnerContainer spinnerContainer white"></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_LessonViewerModule_chatWidget">
+	<div class="chatWidgetMessageListContainer"></div>
+	<div class="chatWidgetTextWrapper">
+		<input type="text" tabindex="-1">
+		<span class="bb-sendButton">Send</span>
+	</div>
+</script>
+
+<script type="text/template" id="template_LessonViewerModule_chatWidgetMessageItemView">
+	<div class="chatMessageBubble">{{message}}</div>
+	<div class="chatBubbleOuterTriangle"></div>
+	<div class="chatBubbleInnerTriangle"></div>
+</script>
+<script type="text/template" id="template_StudentCollabViewerModule">
+	<div class="aspectCenterWrapper">
+		<div class="region_contentView"></div>
+		<div class="region_telestrate"></div>
+	</div>
+</script>
+
+<script type="text/template" id="template_StudentCollabViewerModule_ContentView">
+	<div class="region_resourceViewer"></div>
+	<div class="region_ebookVolumes"></div>
+	<div class="bb-blockInteractionMask blockInteractionMask"></div>
+	<div class="bb-noLessonView noLessonView hidden"></div>
+	<div class="bb-customResourceNavLeft customResourceNavButton leftButton hidden"></div>
+	<div class="bb-customResourceNavRight customResourceNavButton rightButton hidden"></div>
+</script>
+
+
+<script type="text/template" id="template_StudentCollabRejoinPopup">
+	<div class="reconnectPopup notificationPopup popup">
+		<div class="joinCodePopupInner notificationWrapper LARGE">
+			<div class="infoWrapper">
+				<div class="notificationIcon NETWORK_ERROR"></div>
+				<div class="textWrapper">
+					<div class="reconnectMsg notificationPrompt">Connection lost. Would you like to reconnect to the collaboration session?</div>
+				</div>
+				<hmh-spinner class="bb-spinnerContainer spinnerContainer reconnectLoadingSpinner hidden" ></hmh-spinner>
+			</div>
+			<div class="notificationSeparator"></div>
+			<div class="bb-buttonContainer buttonWrapper">
+				<div class="bb-cancel notificationButton cancelButton"></div>
+				<div class="bb-confirm notificationButton confirmButton"></div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_SideMenuModule-JoinClassPopupView">
+	<div class="notificationWrapper joinClassPopupBorderWrapper bb-joinClassPopupBorderWrapper {{mode}}">
+		<div class="joinClassPopupWrapper">
+			<div class="joinClassPopupTextEntryContainer">
+				<div class="headerTitle">{{headerTitle}}</div>
+				<input type="text">
+			</div>
+			<div class="joinClassErrorNotification"></div>
+			<div class="notificationSeparator"></div>
+			<div class="joinClassPopupButtonContainer">
+				<div class="bb-cancel notificationButton cancelButton"></div>
+				<hmh-spinner class="bb-spinnerContainer spinnerContainer hidden" ></hmh-spinner>
+				<div class="bb-confirm notificationButton confirmButton"></div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_StudentCollabToolbarModule">
+	<div class="bb-classJoinedInfo classJoinedInfo"></div>
+	<div class="region_toolbarContent toolbarContentContainer"></div>
+	<div class="bb-leaveSessionButton toolbarLeaveSessionButton">Leave Session</div>
+</script>
+<script type="text/template" id="template_TeacherCollabToolbarModule_ParticipantListViewItem">
+	<div class="studentItemIconWrapper">
+		<div class="lowerHandIcon"></div>
+	</div>
+	<div class="studentItemIconWrapper">
+		<div class="newMessageIcon hidden"></div>
+	</div>
+	<div class="handRaisedIcon hidden"></div>
+	<div class="studentStatusCircle"></div>
+	<div class="studentName text-ellipsis">{{displayName}}</div>
+</script>
+
+<script type="text/template" id="template_TeacherCollabToolbarModule_ParticipantListView">
+	<div class="studentListHeader">
+		Students <span class="studentCount"></span> <span class="expandCollapseStudents"></span>
+	</div>
+	<div class="editHandRaises">Edit</div>
+	<div class="participantListScrollWrapper">
+		<ol class="participantList"></ol>
+	</div>
+</script>
+
+<script type="text/template" id="template_TeacherCollabToolbarModule_ParticipantChatView">
+	<div class="chatViewHeader">
+		<div class="backToParticipants"></div>
+		<div class="chatWithLabel"><span>Chat with </span><span class="chatWithParticipant">{{displayName}}</span></div>
+	</div>
+	<div id="region_ParticipantChatView_chatWidget"></div>
+</script>
+
+<script type="text/template" id="template_TeacherCollabToolbarModule">
+	<div class="collabToolbar">
+		<div class="toolbarBody">
+			<div class="invitationCode">
+				<div class="invitationCodeLabel">Invitation Code: <span
+						class="persistantInvitationCode">{{joinCode}}</span></div>
+			</div>
+
+			<div class="teacherCollabTools">
+				<div class="drawingTools">
+					<div class="drawingToolsLabel">
+						Block Student
+						<br/>
+						Interaction
+					</div>
+
+					<div class="drawingToolsSwitch onoffswitch">
+						<input type="checkbox" name="onoffswitch"
+							   class="onoffswitch-checkbox bb-blockInteractionToggleSwitch hidden"
+							   id="blockInteractionToggleSwitch">
+						<label class="onoffswitch-label" for="blockInteractionToggleSwitch">
+							<div class="onoffswitch-inner"></div>
+							<div class="onoffswitch-switch"></div>
+						</label>
+					</div>
+				</div>
+				<div class="teacherCollabDrawingTools">
+					<div class="drawingTools">
+						<div class="drawingToolsLabel">
+							Drawing
+							<br/>
+							Tools
+						</div>
+						<div class="drawingToolsSwitch onoffswitch">
+							<input type="checkbox" name="onoffswitch"
+								   class="onoffswitch-checkbox bb-raiseHandSwitch hidden"
+								   id="drawingToolsToggleSwitch">
+							<label class="onoffswitch-label" for="drawingToolsToggleSwitch">
+								<div class="onoffswitch-inner"></div>
+								<div class="onoffswitch-switch"></div>
+							</label>
+						</div>
+					</div>
+					<div class="region_drawingTools"></div>
+				</div>
+
+				<div class="participantInteractionWrapper">
+					<div id="region_participantListWrapper"></div>
+					<div id="region_chatWrapper"></div>
+				</div>
+				<div class="clearHands">Clear all raised hands</div>
+				<div class="bb-endSession endSession">End Session</div>
+			</div>
+		</div>
+		<div class="joinCodePopup hidden">
+			<div class="joinCodePopupInner">
+				<div class="inviteCodeTextLine MPSB_22">
+					Class invitation code
+				</div>
+				<div class="inviteCodeTextLine MP_22">
+					Your class invitation code is:
+				</div>
+				<div class="MP_30"></div>
+				<div class="separator"></div>
+				<div class="popupDoneButton"></div>
+			</div>
+		</div>
+
+	</div>
+</script>
+
+<script type="text/template" id="template_TeacherCollabTelestrateTools">
+	<div class="telestrateToggle">
+		<div class="telestrateToggleBtn telestrateOn">On</div>
+		<div class="telestrateToggleBtn telestrateWhiteboard">Whiteboard</div>
+		<div class="telestrateToggleBtn telestrateOff active">Off</div>
+	</div>
+	<div class="telestrateButtons">
+		<div class="telestrateBtn telestrateDraw active orange"></div>
+		<div class="telestrateBtn telestrateHighlight"></div>
+		<div class="telestrateBtn telestrateErase"></div>
+		<div class="telestrateBtn telestrateClear"></div>
+
+		<div class="telestrateDrawColors">
+			<div class="telestrateDrawColor orange selected" data-color="#f4682a" data-css="orange"></div>
+			<div class="telestrateDrawColor red" data-color="#ed3234" data-css="red"></div>
+			<div class="telestrateDrawColor blue" data-color="#06a4c2" data-css="blue"></div>
+			<div class="telestrateDrawColor green" data-color="#5db13a" data-css="green"></div>
+			<div class="telestrateDrawColor black" data-color="#000000" data-css="black"></div>
+			<div class="telestrateDrawColor white" data-color="#ffffff" data-css="white"></div>
+		</div>
+
+		<div class="telestrateHighlightColors">
+			<div class="telestrateHighlightColor yellow selected" data-color="#fff548" data-css="yellow"></div>
+			<div class="telestrateHighlightColor pink" data-color="#feb1fd" data-css="pink"></div>
+			<div class="telestrateHighlightColor blue" data-color="#36f9fe" data-css="blue"></div>
+			<div class="telestrateHighlightColor green" data-color="#b4fb87" data-css="green"></div>
+		</div>
+
+		<div class="telestrateEraserSizes">
+			<div class="telestrateEraserSize small" data-eraser-size="small">
+				<div class="selectedBorder">
+					<div class="eraserDot"></div>
+				</div>
+			</div>
+			<div class="telestrateEraserSize medium" data-eraser-size="medium">
+				<div class="selectedBorder">
+					<div class="eraserDot"></div>
+				</div>
+			</div>
+			<div class="telestrateEraserSize large" data-eraser-size="large">
+				<div class="selectedBorder">
+					<div class="eraserDot"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_TelestrateModule">
+	<div class="noTelestrateMask">
+		<div class="top"></div>
+		<div class="mid">
+			<div class="left"></div>
+			<div class="center">
+				<div class="telestrateWidgetWrapper">
+					<canvas class="bb-telestrateWidget-canvas telestrateWidgetCanvas"></canvas>
+				</div>
+			</div>
+			<div class="right"></div>
+		</div>
+		<div class="bottom"></div>
+	</div>
+</script>
+<script type="text/template" id="template_contentPopoverHandler_overlay">
+    <div class="topToolbar">
+        <div class="closePopup"></div>
+        <div class="popupMaximize"></div>
+    </div>
+    <div class="webviewWrapper"></div>
+    <div class="se-handle"></div>
+</script>
+<script type="text/template" id="template_ContentResourceViewer"><div></div></script>
+
+<script type="text/template" id="template_CustomLessonEditorModule">
+	<div class="region_leftArea leftArea"></div>
+	<div class="bb-emptySlideMessage emptySlideMessage hidden">Please edit or delete any empty slides before proceeding.</div>
+	<div class="rightArea">
+		<div class="bb-createViewLogo createViewLogo"></div>
+		<div class="removeItemTray">
+			<div class="bb-editItemBtn editItemBtn">Edit</div>
+			<div class="bb-removeItem removeItemBtn">Remove</div>
+		</div>
+		<div class="region_mediaPicker hidden"></div>
+		<div class="region_preview hidden"></div>
+	</div>
+	<div class="bb-loadingScreen loadingScreen">
+		<hmh-spinner></hmh-spinner>
+	</div>
+	<div class="bb-fullscreenPreviewWrapper fullscreenPreviewWrapper hidden">
+		<webview src="" class="bb-fullscreenImage fullscreenImage"></webview>
+		<div class="bb-exitFullscreenPreviewButton exitFullscreenPreviewButton"></div>
+	</div>
+	<div class="clickMask bb-clickMask hidden"></div>
+</script>
+
+<script type="text/template" id="template_CustomLessonMediaPickerView">
+	<div class="informationWrapper">
+		<div class="label">Choose content to add to this slide.</div>
+		<div class="bb-openInfoButton informationIcon"></div>
+	</div>
+	<div class="optionList">
+		<a class="bb-image addImage image">Add Image</a>
+		<a class="bb-video addImage video">Add Video</a>
+		<a class="bb-upload addImage upload">Upload</a>
+		<a class="bb-url addImage url">Add URL</a>
+		<a class="bb-text addImage text">Add Text</a>
+	</div>
+	<div class="bb-infoPanel infoPanel">
+		<a class="bb-closeInfoButton closeInfoButton"></a>
+		<div class="titleLabel">More Information on Custom Lesson Build Options</div>
+		<div class="infoItem">
+			<div class="addImage image">Add Image</div>
+			<div class="descriptionLabel">Find and add images from the internet. The HMH Player image search is powered by Bing image.</div>
+		</div>
+		<div class="infoItem">
+			<div class="addImage video">Add Video</div>
+			<div class="descriptionLabel">Discover videos to embed in your lesson using YouTube video search.</div>
+		</div>
+		<div class="infoItem">
+			<div class="addImage upload">Upload</div>
+			<div class="descriptionLabel">Upload files from your device. On the Chrome app teachers can add images, PDFs, and text files. On an iPad you can add images directly from your camera roll.</div>
+		</div>
+		<div class="infoItem">
+			<div class="addImage url">Add URL</div>
+			<div class="descriptionLabel">Add a link to a website so your students can view the site from within the custom lesson.</div>
+		</div>
+		<div class="infoItem">
+			<div class="addImage text">Add Text</div>
+			<div class="descriptionLabel">Create a slide with your own text content and add formatting to make it stand out.</div>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_CustomLessonEditorModule-DocumentEditView">
+	<div class="uploadArea">
+		<div class="bb-format format">Select a file from your computer. The following file types are supported with a maximum file size of 5MB: .jpg, .jpeg, .png, .gif, .pdf, .txt.</div>
+		<div class="fileUpload">
+			<div>Browse</div>
+			<input class="bb-inputUpload inputUpload" type="file" name="upload" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt"/>
+		</div>
+	</div>
+	<div class="bb-cancelButton cancelButton">Cancel</div>
+	<div class="placeholderImage"></div>
+	<hmh-spinner class="bb-spinner hidden"></hmh-spinner>
+</script>
+<script type="text/template" id="template_CustomLessonSearchBasedMediaPickerView">
+	<div class="searchBarContainer">
+		<hmh-spinner class="bb-searchSpinner searchSpinner hidden"></hmh-spinner>
+		<input type="search" class="bb-searchText searchInput" placeholder="Search for {{mode}}s"/>
+		<div class="bb-searchBtn searchButton"></div>
+	</div>
+	<div class="bb-cancelBtn cancelBtn">Cancel</div>
+	<div class="mediaSearchContainer">
+		<div class="bb-placeholderImage placeholderImage">
+			<div class="{{mode}}"></div>
+		</div>
+		<div class="contentContainer">
+			<div class="modeIndicator">{{modeLabel}}</div>
+			<div class="searchResults">
+				<webview class="bb-searchResultsWebView"></webview>
+			</div>
+			<div class="bb-insertTray insertTray">
+				<div class="bb-insertButton insertButton">Insert</div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_CustomLessonEditorModule-TextEditView">
+    <div class="bb-cancelButton cancelButton">Cancel</div>
+	<div class="webviewWrapper">
+		<div class="region_webview"></div>
+	</div>
+	<div class="insertContainer">
+		<button class="bb-insertButton insertButton">Insert</button>
+	</div>
+</script>
+
+<script type="text/template" id="template_CustomLessonEditorModule-WebLinkEditView">
+	<div class="header">
+		<div class="webLinkContainer">
+			<input type="search" class="webLinkUrl" placeholder="Enter a Web Site URL"/>
+			<div class="bb-searchButton searchButton">GO</div>
+		</div>
+		<div class="bb-nativeBrowserIcon nativeBrowserIcon"></div>
+		<div class="bb-cancelButton cancelButton">Cancel</div>
+	</div>
+	<div class="webviewWrapper">
+		<div>
+			<webview class="bb-resourceWebview" style="height:100%; width: 100%;"/>
+		</div>
+	</div>
+	<div class="bb-noContentScreen noContentScreen"></div>
+	<div class="insertContainer">
+		<div class="bb-insert insertButton">Insert</div>
+	</div>
+</script> 
+
+<script type="text/template" id="template_CustomLessonEditorModule_customLessonCreateScreenView">
+	<div class="createText">To create a custom lesson first choose from the options below.</div>
+	<div class="bb-programSelectorLabel programSelectorLabel">Select a program.</div>
+	<div class="region_programSelector"></div>
+	<div class="bb-customLesson createOption">Select a Lesson to Customize</div>
+	<div class="bb-selectExisting createOption hidden">Select a Lesson from My Portfolio</div>
+	<div class="bb-createFromScratch createOption">Create My Own Lesson</div>
+</script>
+<script type="text/template" id="template_CustomLessonEditorModule_selectFromLibraryView">
+    <div class="myLibraryTitle"></div>
+    <div class="customLessonScrollRegion">
+        <div class="customLessonScrollContainer">
+            <hmh-spinner class="bb-spinner selectFromLibrarySpinner" ></hmh-spinner>
+            <ol class="customLessonList"></ol>
+        </div>
+    </div>
+    <div class="libraryFooter">
+        <div class="bb-back backBtn">Back</div>
+        <div class="bb-cancel cancelBtn">Cancel</div>
+    </div>
+</script>
+
+<script type="text/template" id="template_CustomLessonEditorModule_selectFromLibraryItemView">
+    <div class="customLessonTitle">{{title}}</div>
+</script>
+<script type="text/template" id="template_CustomLessonEditorModule_customLessonSelectView">
+	<hmh-spinner class="bb-loadingTOCSpinner loadingTOCSpinner hidden" ></hmh-spinner>
+	<div class="selectLessonTitle">Select a lesson to customize.</div>
+	<div class="region_programSelector"></div>
+	<div class="region_tocTreeView"></div>
+	<div class="selectLessonFooter">
+		<a class="bb-cancel cancelBtn">Cancel</a>
+		<a class="bb-start startBtn">Start</a>
+	</div>
+</script>
+<script type="text/template" id="template_CustomLessonEditorModule_publishView">
+	<hmh-spinner class="bb-loadingTOCSpinner loadingTOCSpinner hidden" ></hmh-spinner>
+	<div class="selectLessonTitle">Select a location.</div>
+	<div class="region_tocTreeView"></div>
+	<div class="publishFooter">
+		<a tabindex="-1" class="bb-cancel cancelBtn">Cancel</a>
+		<a tabindex="-1" class="bb-publish publishBtn">Publish</a>
+	</div>
+</script>
+<script type="text/template" id="template_CustomLessonEditorModule_saveAndPublishView">
+	<div class="lessonTitleLabel text-ellipsis">{{lessonTitle}}</div>
+	<div class="contentBody">
+		<div class="bb-programSelectorLabel programSelectorLabel">Select a program.</div>
+		<div class="region_programSelector"></div>
+        <div class="region_resourceSelector"></div>
+		<div class="bb-saveAndPublishBtn createOption">Publish for Students</div>
+		<div class="bb-saveOnlyBtn createOption">Save Custom Lesson</div>
+	</div>
+	<div class="region_publishView hidden"></div>
+	<div class="footer">
+		<div class="bb-cancelButton cancelButton">Cancel</div>
+		<div class="bb-continueEditBtn continueEditBtn">Continue Editing</div>
+	</div>
+	<div class="bb-interactionMask interactionMask">
+		<hmh-spinner></hmh-spinner>
+	</div>
+</script>
+
+<script type="text/template" id="template_CustomLessonEditorModule_sideMenuItemListView">
+	<div class="lessonTitleWrapper bb-lessonTitleWrapper">
+		<input class="bb-lessonTitle lessonTitle text-ellipsis" type="text" maxlength="100" value="{{lessonTitle}}"
+			   placeholder="Please Enter a Lesson Title"/>
+		<div class="pencilIcon"></div>
+	</div>
+	<div class="itemListScrollRegion">
+		<div class="itemListScrollContainer">
+			<ol class="itemList"></ol>
+		</div>
+	</div>
+	<div class="bb-addItem addItemBtn">Add Slide</div>
+	<div class="sideMenuFooter">
+		<a class="bb-cancel cancelBtn">Cancel</a>
+		<a class="bb-save saveBtn">Save</a>
+	</div>
+</script>
+
+<script type="text/template" id="template_CustomLessonSideMenuItemListItemView">
+	<input class="bb-itemTitle itemTitle text-ellipsis" type="text" maxlength="100" value="{{title}}"
+		   placeholder="Enter a Slide Title" {{^editable}}disabled{{/editable}}/>
+	{{#editable}}
+		<div class="bb-delete deleteBtn"></div>
+		<div class="bb-dragHandle dragHandle"></div>
+	{{/editable}}
+</script>
+<script type="text/template" id="template_CustomLessonEditorModule-SideMenuView">
+	<div class="region_createMenu hidden"></div>
+	<div class="region_libraryMenu hidden"></div>
+	<div class="region_lessonSelectMenu hidden"></div>
+</script>
+
+<script type="text/template" id="template_CustomLessonEditorModule-SideMenuListView">
+	<ol></ol>
+	<div class="addButtonContainer">
+		<button tabindex="-1" class="bb-addItem"></button>
+	</div>
+</script>
+
+<script type="text/template" id="template_CustomLessonEditorModule-SideMenuListItemView">
+	<div class="sideMenuItemControl">
+		<div class="deleteButton"></div>
+		<div class="itemTitle">
+			<span>{{title}}</span>
+			<input type="text" maxlength="100" value="{{title}}"/>
+		</div>
+		<div class="dragHandle"></div>
+	</div>
+	<div class="deleteConfirm"><span>Delete</span></div>
+</script>
+<script type="text/template" id="template_DashboardModule">
+	<div class="region_dashboardHeader">
+		<div class="titleBar bb-titleBar">
+			<h1>{{sectionTitle}}</h1>
+			<div class="titleToggleArrow bb-titleToggleArrow hidden"></div>
+		</div>
+		<div class="sectionSelector">
+			<div class="region_sectionSelector"></div>
+		</div>
+	</div>
+	<div class="region_edSectionSelector"></div>
+	<div class="dashboardContent">
+		<div class="region_dashboardContent"></div>
+	 	<div class="region_libraryViewAll"></div>
+	</div>
+	<div class="dashboardOverlay bb-dashboardOverlay hidden"></div>
+	<hmh-spinner class="mainDashboardSpinner spinner spinnerContainer hidden" ></hmh-spinner>
+</script>
+<script type="text/template" id="HS_template_DashboardModule_SectionView">
+	<div class="sectionContentContainer">
+		<div class="leftWell">
+			<div class="hs_libraryCard">
+				<div class="region_programSelector"></div>
+				<div class="region_library"></div>
+			</div>
+			<div class="bb-waterAppTile waterAppTile">
+				<div class="waterAppLabel">Water Usage</div>
+			</div>
+		</div>
+		<div class="region_assignments"></div>
+		<div class="rightWell">
+			<div class="region_progress"></div>
+			<div class="region_create"></div>
+		</div>
+	</div>
+</script>
+
+
+<script type="text/template" id="template_DashboardModule_SectionView">
+	<div class="sectionContentContainer">
+		<div class="region_library"></div>
+		<div class="region_assignments"></div>
+		<div class="rightWell">
+			<div class="region_progress"></div>
+			<div class="bb-waterAppTile waterAppTile">
+				<div class="waterAppLabel">Water Usage</div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="KG_template_DashboardModule_SectionView">
+	<div class="sectionContentContainer">
+		<div class="leftWell">
+			<div class="region_library"></div>
+		</div>
+		<div class="rightWell">
+			<div class="cardWrapper">
+				<div class="region_assignments cardContainer"></div>
+			</div>
+			<div class="cardWrapper">
+				<div class="region_progress cardContainer"></div>
+			</div>
+			<div class="waterAppWrapper bb-waterAppTile">
+				<div class="waterAppTile">
+					<div class="waterAppLabel">Water Usage</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<button tabindex="-1" class="bb-scrollUp scrollUpButton"></button>
+	<button tabindex="-1" class="bb-scrollDown scrollDownButton"></button>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionView_ProgramListItemView">
+	<div class="container {{#showLoadFailedView}}showLoadFailedView{{/showLoadFailedView}} lastReadArea bb-lastReadArea">
+		<div class="bb-notAvailableOffline notAvailableOffline">
+			<div class="notAvailableLabel">Not available offline</div>
+		</div>
+		<div class="backgroundImage" style="background-image:url('{{programImageUrl}}')">
+			<div class="programCardGradient"></div>
+			<div class="content">
+				<div class="libraryCardContent ">
+					<div class="headerLabelText">{{{headerLabelText}}}</div>
+					<div class="titleLabelText">{{{titleLabelText}}}{{{subtitleLabelText}}}</div>
+				</div>
+			</div>
+			<div>
+				<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+			</div>
+			<a tabindex="-1" class="viewAll">View Library</a>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionViewEd">
+	<div class="sectionContentContainer">
+		<div class="leftWell">
+			<div class="hs_libraryCard">
+				<div class="region_programSelector"></div>
+				<div class="region_library"></div>
+			</div> 
+		</div>
+		<div class="region_assignments"></div>
+		<div class="rightWell">
+			<div class="region_progress"></div>
+			<div class="region_create"></div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionView_ProgramListItemLoadingView">
+	<hmh-spinner ></hmh-spinner>
+</script>
+<script type="text/template" id="template_DashboardModule_SectionAssignmentsView">
+	<div class="bb-notAvailableOffline notAvailableOffline hidden">
+		<div class="notAvailableLabel">Not available offline</div>
+	</div>
+	<div class="sectionContentHeader assignments">
+		<h3>Assignments</h3>
+		<div class="bb-refresh refresh"></div>
+	</div>
+	<div class="sectionContentScrollContainer">
+		<div class="sectionContentScrollRegion bb-cardContent">
+			{{#showLoadFailedView}}
+				<div class="loadFailedView">
+					<div class="loadFailedTitle">No Data!</div>
+					<div class="loadFailedSubtitle">Please refresh view.</div>
+				</div>
+			{{/showLoadFailedView}}
+			{{^showLoadFailedView}}
+				<ol class="bb-assignmentCards assignmentCards"></ol>
+				<div class="noAssignments">No Current Assignments</div>
+				<hmh-spinner class="bb-spinner assignmentLoadingSpinner" ></hmh-spinner>
+			{{/showLoadFailedView}}
+		</div>
+		<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+	</div>
+	<div class="sectionContentFooter">
+		<a tabindex="-1" href="#" class="bb-sectionFooterLink sectionFooterLink">View Assignments</a>
+	</div>
+</script>
+
+<script type="text/template" id="KG_template_DashboardModule_SectionAssignmentsView">
+	<div class="bb-notAvailableOffline notAvailableOffline {{^shouldShowNotAvailableOfflineMessage}}hidden{{/shouldShowNotAvailableOfflineMessage}}">
+		<div class="notAvailableLabel">Not available offline</div>
+	</div>
+	<a tabindex="-1" class="bb-view-activities">
+		<h3>Activities</h3>
+		<div class="activitiesImage"></div>
+		<div class="noAssignments">No Activities Due</div>
+	</a>
+	<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+</script>
+
+<script type="text/template" id="HS_template_DashboardModule_SectionAssignmentItemView">
+	<div class="bb-notAvailableOffline notAvailableOffline {{^shouldShowNotAvailableOfflineMessage}}hidden{{/shouldShowNotAvailableOfflineMessage}}">
+		<div class="notAvailableLabel">Not available offline</div>
+	</div>
+
+	<div class="contentContainer">
+		<div class="assignmentTitle HL_18">{{title}}</div>
+		<div class="assignmentDue HB_16">
+			<span>Due </span>
+			<span class="bb-dueDate">{{dueDateLabel}}</span>
+		</div>
+		<div>
+			<div class="statusStateImg {{status}}"></div>
+			<div class="bb-statusText statusText">{{statusText}}</div>
+			<div class="bb-downloadedState downloadedState {{#isDownloaded}}downloaded{{/isDownloaded}}
+				{{^showDownloadInfo}}hide{{/showDownloadInfo}}"></div>
+			<div class="returnedLabel{{^assignmentReturned}} hidden{{/assignmentReturned}}">Returned</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="MS_template_DashboardModule_SectionAssignmentItemView">
+	<div class="bb-notAvailableOffline notAvailableOffline {{^shouldShowNotAvailableOfflineMessage}}hidden{{/shouldShowNotAvailableOfflineMessage}}">
+		<div class="notAvailableLabel">Not available offline</div>
+	</div>
+
+	<div class="contentContainer">
+		<div class="verticalCenterContainer">
+			<div class="assignmentTitle HL_18">{{title}}</div>
+		</div>
+		<div class="assignmentDue HB_16">
+			<span>Due </span>
+			<span class="bb-dueDate">{{dueDateLabel}}</span>
+		</div>
+		<div class="bottomContainer">
+			<div class="statusStateImg {{status}}"></div>
+			<div class="statusText">{{statusText}}</div>
+			<div class="bb-downloadedState downloadedState {{#isDownloaded}}downloaded{{/isDownloaded}}"></div>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_DashboardModule_SectionCreateView">
+	<div class="sectionContentHeader lesson">
+		<h3>Create</h3>
+	</div>
+	<div class="sectionContentScrollContainer">
+		<div class="sectionContentScrollRegion bb-cardContent">
+			<a tabindex="-1" href="#" class="bb-createLesson createLesson">
+				<span class="title">Create a lesson</span><span class="icon"></span>
+			</a>
+			<a tabindex="-1" href="#" class="bb-createAssignment assignment">
+				<span class="title">Create an assignment</span><span class="icon"></span>
+			</a>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_DashboardModule_SectionLibraryView">
+	<div class="sectionContentScrollContainer">
+		<div class="sectionContentScrollRegion">
+			<div class="lastReadContainer">
+				{{#imageUrl}}
+					<div class="libraryCardImage" style="background-image:url('{{imageUrl}}')"></div>
+				{{/imageUrl}}
+				{{^imageUrl}}
+					<div class="libraryCardImage" style="background-image:url('images/dashboard/libraryCard/{{defaultImageAssetId}}')"></div>
+				{{/imageUrl}}
+				<div class="bb-libraryCardContent libraryCardContent">
+					<div class="bb-offlineOverlay offlineOverlay">
+						<div class="offlineLabel">{{offlineLabelText}}</div>
+					</div>
+					<div class="headerLabelText">{{headerLabelText}}</div>
+					<div class="titleLabelText">{{{titleLabelText}}}</div>
+					<div class="subtitleLabelText">{{{subtitleLabelText}}}</div>
+				</div>
+			</div>
+		</div>
+		<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+		<div class="bb-containerMask containerMask"></div>
+	</div>
+	<div class="sectionContentFooter">
+		<a tabindex="-1" class="bb-sectionFooterLink sectionFooterLink">View Library</a>
+	</div>
+</script>
+<script type="text/template" id="template_DashboardModule_SectionViewAllLibraryView">
+	<div class="header">
+		<div class="libraryLabel">Library</div>
+		<div class="programSelectorCenterContainer">
+			<div class="padder"></div>
+			<div class="region_programSelector"></div>
+			<div class="padder"></div>
+		</div>
+		<a tabindex="-1" href="#" class="bb-close closeButton"></a>
+	</div>
+	<div class="contentArea">
+		<div class="region_itemList"></div>
+        <div class="noDataMessage hidden">No Data Available</div>
+        <hmh-spinner class="bb-loadingSpinner" ></hmh-spinner>
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionViewAllLibraryView_CategoryItem">
+	<div class="title {{^showCategoryTitle}}hidden{{/showCategoryTitle}}">{{title}}</div>
+	<ol></ol>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionViewAllLibraryView_ResourceItemView">
+	<a class="resourceLink" tabindex="-1" href="#">
+		<span>{{title}}</span>
+	</a>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionViewAllLibraryView_ProgramSelectorView">
+	<a tabindex="-1" href="#" class="bb-title title">
+		<span class="bb-titleText"></span>
+	</a>
+	<div class="flyoutContainer">
+		<div class="bb-flyout flyout">
+			<div class="flyoutContent">
+				<ol></ol>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SectionViewAllLibraryView_ProgramSelectorItemView">
+	<a tabindex="-1" href="#"><span>{{title}}</span></a>
+</script>
+<script type="text/template" id="template_DashboardModule_SectionProgressView">
+	<div class="sectionContentHeader reports">
+		<h3>Reports</h3>
+		<div class="bb-refresh refresh"></div>
+	</div>
+	<div class="sectionContentScrollContainer">
+		<div class="sectionContentScrollRegion bb-cardContent">
+			<div class="progressContainer">
+				<div class="mainScoreContainer">
+					<div class="bb-notAvailableOffline notAvailableOffline hidden">
+						<div class="notAvailableLabel">Not available offline</div>
+					</div>
+					<div class="titleContainer {{#showLoadFailedView}}showLoadFailedView{{/showLoadFailedView}}">
+						<div class="mainTitle {{#isTeacher}}isTeacher{{/isTeacher}}">{{recentReportHeaderTitle}}</div>
+						<div class="reportTitle">{{recentReportTitle}}</div>
+					</div>
+
+					<div class="averageWrapper">
+						<div class="radial-progress region_radialProgress"></div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+		<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+	</div>
+	<div class="sectionContentFooter">
+		<a tabindex="-1" href="#" class="bb-viewAll sectionFooterLink">View Reports</a>
+	</div>
+</script>
+
+
+<script type="text/template" id="MS_template_DashboardModule_SectionProgressView">
+    <div class="sectionContentHeader">
+        <h3>Reports</h3>
+        <div class="bb-refresh refresh"></div>
+    </div>
+    <div class="sectionContentScrollContainer">
+        <div class="sectionContentScrollRegion bb-cardContent">
+        	<div class="bb-notAvailableOffline notAvailableOffline hidden">
+				<div class="notAvailableLabel">Not available offline</div>
+			</div>
+			{{#showLoadFailedView}}
+				<div class="loadFailedView">
+					<div class="loadFailedTitle">No Data!</div>
+					<div class="loadFailedSubtitle">Please refresh view.</div>
+				</div>
+			{{/showLoadFailedView}}
+			{{^showLoadFailedView}}
+				<div class="progressContainer">
+					<div class="mainScoreContainer">
+						<div class="titleContainer">
+							<div class="mainTitle">Recent Report</div>
+							<div class="reportTitle">{{recentReportTitle}}</div>
+						</div>
+						<div class="reportScore">
+							<div class="reportScoreGraphBgBottom"></div>
+							<div class="reportScoreGraphBgTop"></div>
+							<div class="reportScoreGraphFill bb-reportScoreGraphFill {{warmth}}">
+								<div class="reportScoreGraphFillBottom"></div>
+								<div class="reportScoreGraphFillTop"></div>
+							</div>
+							<div class="reportScoreGraph"></div>
+							<div class="reportScorePointerWrapper bb-reportScorePointerWrapper">
+								<div class="reportScorePointer"></div>
+							</div>
+							<div class="reportScoreValueWrapper bb-reportScoreValueWrapper">
+								<div class="reportScoreValue bb-reportScoreValue {{warmth}}">{{displayScore}}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			{{/showLoadFailedView}}
+        </div>
+        <hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+    </div>
+    <div class="sectionContentFooter">
+        <a tabindex="-1" href="#" class="bb-viewAll sectionFooterLink">View Reports</a>
+    </div>
+</script>
+
+<script type="text/template" id="KG_template_DashboardModule_SectionProgressView">
+	<div class="mainScoreContainer">
+		<a tabindex="-1" class="bb-viewAll">
+			<h3>Progress</h3>
+			<div class="progressImage"></div>
+			<div class="noProgress">No Completed Activities</div>
+		</a>
+		<div class="bb-notAvailableOffline notAvailableOffline hidden">
+			<div class="notAvailableLabel">Not available offline</div>
+		</div>
+	</div>
+	<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+</script>
+<script type="text/template" id="template_DashboardModule_EdSectionSelectorView">
+	<div class="bb-menuInner menuInner">
+		<div class="edSectionSelectorMenu">
+			<div class="menuWrapper">
+				<ul class="menuList"></ul>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_EdSectionSelectorItemView">
+	<div class="bb-title title">
+		{{courseTitle}}
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SelectorView">
+	<div class="bb-prev pageBtn prev"></div>
+	<ol></ol>
+	<div class="bb-next pageBtn next"></div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_SelectorItemView"> </script>
+
+<script type="text/template" id="template_DashboardModule_SectionProgramPaginationView" >
+	<div class="headerWrapper">
+		<div class="headerTitleContainer bb-headerTitleContainer">
+			<div class="currentProgramTitle text-ellipsis">
+				<span class="bb-currentProgramTitle">{{programTitle}}</span>
+			</div>
+			<div class="bb-toggleArrow toggleArrow"></div>
+		</div>
+	</div>
+	<div class="lastReadContainer ed">
+		<div class="sectionContentHeader ed program">
+			<div class="headerTitleContainerEd">
+				<h3>Program</h3>
+			</div>
+		</div>
+		<div class="bb-libraryCardContent bb-headerTitleContainer libraryCardContent hidden">
+			<div class="currentProgramTitle bb-currentProgramTitle"></div>
+			<div class="bb-toggleArrow toggleArrow"></div>
+		</div>
+	</div>
+	<div class="listContainer bb-listContainer">
+		<div class="programListWrapper">
+			<ol class="programList"></ol>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_DashboardModule_ProgramItemView">
+	<div class="title text-ellipsis"><span>{{programTitle}}</span></div>
+</script>
+<script type="text/template" id="template_FileBrowserModule">
+	<div class="container">
+		<div class="header">
+			<div class="currentPath">
+				<input type="text" class="bb-currentPath"></input>
+			</div>
+		</div>
+		<div class="content">
+			<div class="bb-leftPanel fileListContainer">
+				<div class="region_fileList"></div>
+				<div class="toolbar">
+					<div class="bb-delete delete"></div>
+					<div class="center"></div>
+					<div class="bb-refresh refresh"></div>
+				</div>
+			</div>
+			<div class="splitter bb-splitter"><b>.</b><b>.</b><b>.</b><b>.</b><b>.</b></div>
+			<div class="previewContainer region_preview"></div>
+			<hmh-spinner class="bb-loading spinner"></hmh-spinner>
+		</div>
+
+	</div>
+</script>
+
+<script type="text/template" id="template_FileBrowserModule_fileItem">
+	<div class="padder padder-{{treeDepth}}"></div>
+	<div class="icon"></div>
+	<div class="name">{{name}}</div>
+</script>
+
+
+<script type="text/template" id="template_FileBrowserModule_preview">
+	<div class="textareaWrapper">
+		<textarea wrap="off" class="bb-textarea"></textarea>
+	</div>
+</script>
+<script type="text/template" id="template_DownloadManagerModule">
+	<div class="container hidden">
+		<div class="dropdownRegion"></div>
+		<div class="downloadedItemsHeader">
+			<div class="downloadDate">Last Download</div>
+			<div class="accessDate">Last Access Date</div>
+			<div class="title">Title</div>
+			<div class="shared">Shared</div>
+			<div class="size">Size</div>
+		</div>
+		<div class="downloadedItemsArea">
+			<div class="downloadedUserItems">
+				<div class="label hidden">My Downloads</div>
+				<div class="downloadedUserItemsRegion"></div>
+			</div>
+			<div class="downloadedOtherItems">
+				<div class="label hidden">Other Users' Downloads</div>
+				<div class="downloadedOtherItemsRegion"></div>
+			</div>
+		</div>
+		<div class="downloadedItemsFooter">
+			<div class="diskSpace">HMH Player:</div>
+			<div class="deleteAllButton">Delete All</div>
+		</div>
+	</div>
+	<hmh-spinner class="spinner spinnerContainer" ></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_DownloadManagerDropdown">
+	<div class="dropdownHeaderWrapper">
+		<div class="dropdownHeaderText">Select a Class</div>
+		<div class="dropdownArrow"></div>
+	</div>
+	<div class="downloadManagerDropdownList hidden"></div>
+</script>
+
+<script type="text/template" id="template_DownloadManagerDropdownListItem">
+	<div>{{title}}</div>
+</script>
+
+<script type="text/template" id="template_DownloadedItemsTableItem">
+	<div class="downloadDate"></div>
+	<div class="accessDate"></div>
+	<div class="title text-ellipsis">{{title}}</div>
+	<div class="shared">-</div>
+	<div class="size">--</div>
+	<div class="trashcan"></div>
+</script>
+
+<script type="text/template" id="ebookTopBarView">
+	<button tabindex="-1" class="audioLauncherButton disabled"></button>
+	<div class="region_audioPlayerWidget"></div>
+	<div class="pageModeMask bb-pageModeMask hidden"></div>
+	<div class="pageModePopoverView">
+		<button tabindex="-1" class="pageModeButton {{^shouldShowPageMode}}hidden{{/shouldShowPageMode}}"></button>
+
+		<div class="region_pageModePopover bb-pageModePopover hidden"></div>
+	</div>
+	<div class="lessonTitle"></div>
+	<div class="paginate">
+		<button tabindex="-1" class="prev"></button>
+		<button tabindex="-1" class="next"></button>
+	</div>
+</script>
+
+<script type="text/template" id="ebookPageModePopoverView">
+	<div class="scrollMode mode selected" data-value="scroll"></div>
+	<div class="singleMode mode" data-value="single"></div>
+	<div class="doubleMode mode" data-value="double"></div>
+	<br/>
+	<div class="scale">
+		<div class="leftSmallPage"></div>
+		<input type="range" name="pageScale" min="0" max="10" value="5" class="pageScale">
+		<div class="rightLargePage"></div>
+	</div>
+</script>
+
+<script type="text/template" id="audioPlayerWidget">
+	<div class="toggleAudioButton pauseButton disabled"></div>
+	<input type="range" name="audioScrubber" min="0" max="120" value="0" step="1" class="audioScrubber">
+	<div class="timeElapsed">00:00</div>
+	<div class="highlightButton selected">TEXT</div>
+	<div class="closeAudioPlayerButton"></div>
+</script>
+<script type="text/template" id="template_EbookVolumesModule">
+	<div class="region_activeEbookView"></div>
+	<div class="bb-volumeSelectorOverlay volumeSelectorOverlay">
+		<div class="left">
+			<div class="tocTitle">Table of Contents</div>
+			<div class="region_volumeSelectorTreeView"></div>
+			<div class="borderShadow"></div>
+		</div>
+		<div class="right">
+			<div class="mainLoadingOverlay">
+				<div class="logo"></div>
+			</div>
+		</div>
+	</div>
+    <div class="region_telestrateView"></div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_EbookViewer">
+	<div class="bb-sidebarContainer sidebarContainer">
+		<div class="bb-closeSidebarBtn closeSidebarBtn hidden"></div>
+		<div class="region_sidebar"></div>
+	</div>
+	
+	<div class="bb-sidebarRightViewWrapper sidebarRightViewWrapper">
+		<div class="region_lessonActions"></div>
+		<div class="region_rightResources"></div>
+		<div class="bb-closeSidebarRightView closeSidebarRightView"></div>
+		<div class="bb-loadingOverlay mainLoadingOverlay">
+			<div class="logo"></div>
+            <hmh-spinner class="bb-loadingSpinner"></hmh-spinner>
+		</div>
+	</div>
+	
+	<div class="bb-mainContentArea mainContentArea">
+		<div class="ebookVolumesTopBar">
+			<button tabindex="-1" class="bb-openSidebarBtn openSidebarBtn"></button>
+			<div class="region_topBar"></div>
+		</div>
+		<div class="region_webview"><div class="webviewWrapper"></div></div>
+		<div class="region_imageGallery"></div>
+		<div class="region_lessonVolumesOverlay lessonVolumesOverlay hidden"></div>
+		<div class="mask bb-mainViewMask"></div>
+	</div>
+	<div id="annotationResizeHandle" class="bb-annotationResizeHandle"></div>
+	<div class="region_annotationSidebar"></div>
+	<div class="popupContainer"></div>
+</script>
+
+
+<script type="text/template" id="template_EbookVolumesModule_LoaderView">
+<div class="region_mainRegion"></div>
+</script>
+
+
+<script type="text/template" id="template_EbookVolumesModule_EbookPickerViewItem">
+{{title}}
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_selectedImageView">
+	<div class="selectedImageNav">
+		<webview class="selectedImageView" src={{imageUrl}}></webview>
+	</div>
+	<div class="caption">{{caption}}</div>
+	<div class="credits">{{credits}}</div>
+</script>
+
+
+<script type="text/template" id="template_EbookVolumesModule_ImageGalleryView">
+	<div class="imageGalleryToolbar">
+		<div class="title"> Slideshow: Page <b>{{pageName}}</b></div>
+		<div class="bb-closeBtn">X</div>
+	</div>
+
+	<div class="selectedImageContainer">
+		<div class="prevImage">&lt;</div>
+		<div class="selectedImage"></div>
+		<div class="zoomControls">
+			<div class="zoomIn">+</div>
+			<div class="zoomOut">-</div>
+		</div>
+		<div class="nextImage">&gt;</div>
+	</div>
+
+	<div class="galleryContainer">
+		<div class="lastPage">&lt;</div>
+		<div class="image-gallery">
+			<div class="imageGalleryCollection"></div>
+		</div>
+		<div class="nextPage">&gt;</div>
+	</div>
+
+	<div class="imageGalleryFooter"></div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_ImageGalleryImage">
+	<div class="image-border"></div>
+	<img>
+</script>
+<script type="text/template" id="template_noteEditorSidebarView">
+	<div class="bb-annotationEdit annotationEdit">
+		<div class="bb-hightlightTools annotationTools">
+			<!--The values are out of order because the value needs to match the ordering on the ebook's popup-->
+			<div data-coloroption="3" class="colorYellow colorSelector annotationTool"></div>
+			<div data-coloroption="2" class="colorGreen colorSelector annotationTool"></div>
+			<div data-coloroption="1" class="colorBlue colorSelector annotationTool"></div>
+			<div data-coloroption="4" class="colorPink colorSelector annotationTool"></div>
+			<div data-underline="true" class="underlineSelector bb-underlineSelector underlineToggleBtn annotationTool"></div>
+			<div data-underline="false" class="highlightSelector bb-highlightSelector underlineToggleBtn annotationTool"></div>
+		</div>
+		<div class="selectedTextWrapper">
+			<div class="bb-annotationSelectedText annotationSelectedText"></div>
+		</div>
+		<textarea placeholder="Add a note" class="bb-annotationInput annotationInput" maxlength="1000"></textarea>
+	</div>
+	<div class="annotationButtons">
+		<div class="bb-annotationDelete annotationDelete"></div>
+		<div class="bb-annotationSave annotationSave">Close</div>
+		<div class="bb-annotationSaveToMyNotebook saveToMyNotebook">
+			<div class="bb-saveNotebookCheckWrapper saveNotebookCheckWrapper">
+				<div class="notebookCheck"></div>
+			</div>
+			Save to Notebook
+		</div>
+	</div>
+	<div class="sidebarVisualHandle"></div>
+</script>
+
+<script type="text/template" id="annotationTag">
+	<div class="bb-tag"></div>
+	<input type="text" class="bb-tagInput"/>
+</script>
+
+<script type="text/template" id="annotationTagListView">
+	<ol class="bb-annotationList"></ol>
+	<div class="bb-addTag">Add Tag</div>
+</script>
+<script type="text/template" id="template_EbookVolumesModule_SidebarView">
+	<a tabindex="-1" href="#" class="bb-navBackToVolumes navBackToVolumes hidden">Volumes</a>
+	<div class="contentContainer">
+		<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+		<div class="region_tocView"></div>
+		<div class="slideupButtons">
+			<a tabindex="-1" href="#" class="bb-openBookmarks bookmarks disabled"><span class="ico"></span>Bookmarks</a>
+			<a tabindex="-1" href="#" class="bb-openNotes notes disabled"><span class="ico"></span>Notes</a>
+			<a tabindex="-1" href="#" class="bb-openStandards standards disabled"><span class="ico"></span>Standards</a>
+		</div>
+	</div>
+	<div class="bb-slideupContainer slideupContainer">
+		<div class="slideupCloseBtn bb-closeSlideup"></div>
+		<div class="region_bookmarks bookmarksSlideup"></div>
+		<div class="region_notes notesSlideup"></div>
+		<div class="region_standards standardsSlideup"></div>
+		<div class="region_resources resourcesSlideup"></div>
+	</div>
+	<div class="borderShadow"></div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_TocView">
+	<div class="bb-tocCustomLessonsToggle tocCustomLessonsToggle">
+		<div class="bb-tocToggle tocToggle ebookToggle"><span>Table of Contents</span></div>
+		<div class="bb-customLessonToggle customLessonToggle ebookToggle"><span>Custom Lessons</span></div>
+	</div>
+	<div class="bb-sortDropdownLabel sortDropdownLabel hidden">{{currentSortLabel}}</div>
+	<div class="region_sortOptions"></div>
+	<div class="region_toc toc"></div>
+	<div class="region_customLessons customLessons"></div>
+	<div class="clickMask bb-clickMask hidden"></div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_StandardsView">
+	<div class="bb-standardsViewHeader standardsViewHeader">Standards</div>
+	<div class="bb-standardsListHeader standardsListHeader">
+		<b class="bb-standardsTitle"></b>
+		<div class="bb-pageName pageName"></div>
+	</div>
+	<ol class="bb-topLevelItems topLevelStandardItems"></ol>
+</script>
+
+<script type="text/template" id="emptyCollectionMessageView">
+	<div>
+		<div class="bb-emptyCollectionMessage emptyCollectionMessage">Empty Collection Message</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_SidebarStandardsItemView">
+	<div>
+		<b class="bb-standardCode standardCode">Code</b>
+		<span class="bb-standardDescription standardDescription">Description</span>
+	</div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_NotesView">
+	<div class="bb-notesViewHeader notesViewHeader">Notes</div>
+	<div class="bb-noNotesView noNotesView">
+		<div class="noNotesIcon"></div>
+		<div class="noNotesText">
+			You have not yet created any highlights or notes. To create a highlight or note, select a piece of text and tap on the note icon.
+		</div>
+	</div>
+	<div class="bb-notesSortOptionsDropdown sortOptionsDropdown">
+		<div class="bb-noteSortLabel sortDropdownLabel">Sort By</div>
+		<div class="bb-notesDropdown dropdown-contents">
+			<div class="arrow-up"></div>
+			<div class="bb-sortOption sortOption dateASC" sortOption="dateASC">Date: newest to oldest</div>
+			<div class="bb-sortOption sortOption dateDSC" sortOption="dateDSC">Date: oldest to newest</div>
+			<div class="bb-sortOption sortOption pageASC" sortOption="pageASC">Page: first to last</div>
+			<div class="bb-sortOption sortOption pageDSC" sortOption="pageDSC">Page: last to first</div>
+		</div>
+	</div>
+	<ol class="bb-topLevelItems topLevelNotesItems"></ol>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_SidebarNotesItemView">
+	<li class="noteListItem">
+		<div class="noteIcon"></div>
+		<div class="pageDateWrapper">
+			<div class="bb-notePage notePage">Page {{object_id}}</div>
+			<div class="bb-noteDate noteDate">{{dateLabel}}</div>
+		</div>
+		<div class="colorTitleWrapper">
+			<div class="bb-noteColor noteColor {{colorClass}}"></div>
+			<div class="bb-noteTitle noteTitle">{{title}}</div>
+		</div>
+	</li>
+</script>
+
+
+<script type="text/template" id="template_EbookVolumesModule_BookmarksView">
+	<div class="bb-bookmarksViewHeader bookmarksViewHeader">Bookmarks</div>
+	<div class="bb-noBookmarksView noBookmarksView">
+		<div class="noBookmarkIcon"></div>
+		<div class="noBookmarkText">
+			You have not yet created any bookmarks. To add a bookmark, click or tap the Bookmark icon on the upper right of the screen.
+		</div>
+	</div>
+	<div class="bb-bookmarksSortOptionsDropdown sortOptionsDropdown">
+		<div class="bb-bookmarkSortLabel sortDropdownLabel">Sort By</div>
+		<div class="bookmarkDropdowns dropdown-contents">
+			<div class="arrow-up"></div>
+			<div class="bb-sortOption sortOption dateASC selected" sortOption="dateASC">Date: newest to oldest</div>
+			<div class="bb-sortOption sortOption dateDSC" sortOption="dateDSC">Date: oldest to newest</div>
+			<div class="bb-sortOption sortOption pageASC" sortOption="pageASC">Page: first to last</div>
+			<div class="bb-sortOption sortOption pageDSC" sortOption="pageDSC">Page: last to first</div>
+		</div>
+	</div>
+	<ol class="bb-topLevelItems topLevelBookmarksItems"></ol>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_SidebarBookmarksItemView">
+	<li class="bookmarkListItem">
+		<div class="bookmarkIcon"></div>
+		<div class="bb-bookmarkTitle bookmarkTitle">{{title}}</div>
+		<div class="bb-bookmarkData bookmarkData">{{dateLabel}}</div>
+	</li>
+</script>
+
+
+<script type="text/template" id="template_EbookVolumesModule_ResourcesView">
+	<div class="resourcesViewHeader"><span class="icon"></span>Resources</div>
+	<div class="bb-closeButton resourceClose"></div>
+	<div class="bb-items resourceList"></div>
+</script>
+
+<script type="text/template" id="template_EbookVolumesModule_ResourcesItemView">
+	<div class="bb-title title">{{title}}</div>
+	<div class="bb-subtitle subtitle">{{subtitle}}</div>
+</script>
+
+<script type="text/template" id="template_EdDiscoverModule">
+	
+	<div class="discover-modal-container"> 
+		<div class="discover-modal">
+
+			<div class="menuOuterWrapper">
+				<div class="region_programDropdown"></div>
+			</div>
+			
+			<div class="edModulesBlockOuterWrapper">
+				<h1 class="pageTitle">Modules</h1>
+				<hmh-spinner class="bb-imageSpinner imageSpinner hidden"></hmh-spinner>
+				<div class="edModulesBlock">
+					<div class="modulesContainer bb-modulesContainer region_edModuleList"></div>
+					<h1 class="lessonsTitle">
+						<span class="bb-extraModuleHeader"></span>
+						<div class="bb-extraModuleTitle"></div>
+					</h1>
+
+					<div class="buttonWrapper hidden">
+						<button class="dark bb-teacherEdition">
+							<span class="icon icon-coreTeacher"></span>
+							<span>Teacher eBook</span>
+						</button>
+						<button class="dark bb-studentEdition">
+							<span class="icon icon-coreStudent"></span>
+							<span>Student eBook</span>
+						</button>
+						<button class="bb-resourceButton light">
+							<span>View Resources</span>
+							<span class="icon chevron icon-chevronRight"></span>
+						</button>
+					</div>
+
+					<hr/>
+
+					<div class="region_lesson">
+					</div>
+				</div>
+			</div>
+			<hmh-spinner class="spinner spinnerContainer hidden" ></hmh-spinner>
+		</div>
+ 
+</script>
+
+<script type="text/template" id="template_EdProgramSelectorDropdown">
+	<div class="bb-menuInnerWrapper menuInnerWrapper">
+		<div tabindex="-1" class="bb-programTitle title text-ellipsis"></div>
+		<div class="bb-edMenuExpandButton edMenuExpandButton">
+			<span class="icon chevron icon-chevronDown"></span>
+		</div>
+	</div>
+	<div class="programSelectorClickMask bb-clickMask hidden"></div>
+	<div class="bb-programList programList hidden"></div>
+</script>
+
+<script type="text/template" id="template_EdProgramSelectorItemDropdown">
+	{{title}}
+</script>
+
+<script type="text/template" id="template_EdModuleWrapper">
+	<div class="edModulesBlockInnerWrapper"></div>
+</script>
+
+<script type="text/template" id="template_ModuleEdItemView"> 
+	<div class="edModuleInnerWrapper">
+		<h2>Module <span>{{hierarchy}}</span></h2>
+	</div>
+	<div class="edModuleInfo">
+		<h3 class="bb-moduleTitle">{{title}}</h3>
+	</div> 
+</script>
+
+<script type="text/template" id="template_LessonEdWidget">
+	 <div class="bb-scrollContainer scrollContainer verticalScrollOnly"> 
+		<ul class="bb-lessonList"> 
+		</ul>
+	</div>
+</script>
+
+<script type="text/template" id="template_LessonEdItemView">
+	<div class="lessonNumber">
+		<span>
+			{{hierarchy}}
+		</span>
+	</div>
+	<div class="lessonDetails">
+		<span class="lessonType">
+			Lesson {{hierarchy}}
+		</span>
+		<span class="lessonTitle">
+			{{title}}
+		</span>
+	</div>
+	<button class="bb-resourceButtonLesson viewResources">
+		<span>View resources</span>
+		<span class="icon chevron icon-chevronRight"></span>
+	</button>
+</script>
+<script type="text/template" id="template_EdResourcesModule">
+	<div class="edResourceBlock">
+		<div class="resourceHeader">
+			<div class="headerTitle">
+				<h2 class="bb-moduleTitle"></h2>
+				<h1>
+					<span class="bb-lessonInfo"></span> : <span class="bb-lessonTitle"></span>
+				</h1> 
+			</div>
+			<div class="headerImageWrapper">
+				<p class="headerImage"></p>
+			</div>
+		</div>
+
+		<div class="resourceLayout">
+			<div class="resourceFilter">
+				<div class="container">
+					<div class="filtersHeader">
+						<h2>Filters</h2>
+						<div class="resetBtn bb-resetFilter">
+							<span>reset</span>
+							<span class="bb-icon icon icon-resetAll"></span>
+						</div>
+					</div> 
+					<div class="region_filters"></div>
+				</div>
+			</div> 
+			<div class="region_resources"></div> 
+		</div>
+	</div>
+</script>
+
+
+<script type="text/template" id="template_FilterItemView"> 
+	<label class="checkboxWrapper">
+		<input type="checkbox" name="Assessment" class="bb-checkbox">
+		<span class="iconContainer">
+			<svg xmlns="http://www.w3.org/2000/svg" role="presentation">
+				<path class="st0" d="M14.3,2.3L5,11.6L1.7,8.3c-0.4-0.4-1-0.4-1.4,0c-0.4,0.4-0.4,1,0,1.4l4,4C4.5,13.9,4.7,14,5,14
+					s0.5-0.1,0.7-0.3l10-10c0.4-0.4,0.4-1,0-1.4S14.7,1.9,14.3,2.3z"/>
+			</svg>
+		</span>
+		<span class="checkboxTitle">{{name}}</span>
+	</label> 
+</script>
+ 
+<script type="text/template" id="template_FilterView"> 
+	<h3>Instructional Purpose</h3> 
+	<ul class="filtersList bb-filtersList">
+	</ul> 
+</script>
+
+
+<script type="text/template" id="template_ResourceItemView">  
+	<div class="iconWrapper">
+		<span class="bb-icon icon"></span>
+	</div>
+	<div class="content">
+		<p class="location">
+			<span>
+				<span class="locationType">{{matches.resource.item.0.type}}</span>
+				{{matches.resource.item.0.hierarchy}}:
+				{{matches.resource.item.0.title}}
+			</span>
+		</p>
+		<span class="type">{{matches.resource.productDisplayTitle}}</span>
+		<p class="title">{{matches.resource.title}}</p>
+		{{#matches.resource.assignable_bolean}}
+			<p class="assignable">Assignable</p>
+		{{/matches.resource.assignable_bolean}}
+		<div class="desc">
+			{{matches.resource.description}}
+		</div>
+		<div class="buttonWrapper">
+			<button class="resourceButton bb-launch">
+				<div class="resourceIconWrapper">
+					<span class="icon icon-launch">
+				</div>
+				<span>Launch</span>
+			</button>
+		</div>
+		{{#matches.resource.assignable_bolean}}
+			<div class="buttonWrapper">
+				<button class="resourceButton">
+					<div class="resourceIconWrapper">
+						<span class="icon icon-assign">
+					</div>
+					<span>Assign</span>
+				</button>
+			{{/matches.resource.assignable_bolean}}
+		</div>
+	</div> 
+</script>
+ 
+<script type="text/template" id="template_ResourceView">  
+	<ul class="resourceList bb-resourceList"> 
+	</ul>
+</script>
+
+
+<script type="text/template" id="template_GlobalResourceViewerModule">
+	<div class="bb-navButtonPrev navButtonPrev hidden"></div>
+	<div class="bb-navButtonNext navButtonNext hidden"></div>
+	<div class="bb-helpTitle helpTitle text-ellipsis"></div>
+	<div class="bb-openInBrowser openInBrowser"></div>
+	<div class="bb-sidebarResourceViewClose sidebarResourceViewClose"></div>
+	<div class="helpWebviewWrapper">
+		<webview class="bb-sidebarResourceWebview sidebarResourceWebview"></webview>
+		<div class="bb-contentNotAvailable contentNotAvailable hidden">
+				<div class="icon"></div>
+				<h2>Content Not Available</h2>
+		</div>
+        <div class="popupContainer"></div>
+	</div>
+</script>
+<script type="text/template" id="template_HelloWorldModule">
+	<div class="container">
+		<h1 class="bb-theText">{{text}}</h1>
+		<a tabindex="-1" href="#" class="bb-theButton">BUTTON</a>
+	</div>
+</script>
+<script type="text/template" id="template_LessonExplorerModule">
+
+	<div class="bb-toggleTocExpand toggleTocExpand"></div>
+    <hmh-spinner class="mainLoadingSpinner bb-spinner hidden"></hmh-spinner>
+	<div class="bb-tocExpandedMask tocExpandedMask hidden"></div>
+	<div class="tocContainer">
+		<div class="region_toc"></div>
+		<div class="bb-tocRightViewWrapper tocRightViewWrapper">
+			<div class="bb-rightViewBackground rightViewBackground"></div>
+			<div class="bb-hmhLogoImage hmhLogoImage"></div>
+			<div class="region_lessonActions"></div>
+			<div class="region_tocStandards"></div>
+			<div class="region_tocResources"></div>
+		</div>
+	</div>
+	<div class="region_lessonViewer"></div>
+</script>
+
+
+<script type="text/template" id="template_LessonExplorerModule_TocView">
+	<div class="bb-tocHeader tocHeader">Table of Contents</div>
+	<div class="bb-tocCustomLessonsToggle tocCustomLessonsToggle">
+		<div class="tocCustomLessonToggleButton selected bb-showLessons">Lessons</div><div class="tocCustomLessonToggleButton bb-showCustomLessons">Custom Lessons</div>
+	</div>
+	<div class="bb-toggleToc toggleToc"></div>
+	<div class="bb-sortDropdownLabel sortDropdownLabel hidden">{{currentSortLabel}}</div>
+	<div class="region_sortOptions"></div>
+    <div class="tocRegion"></div>
+    <hmh-spinner class="bb-tocLoadingSpinner tocSpinner hidden"></hmh-spinner>
+	<div class="customLessonListRegion"></div>
+	<div class="clickMask bb-clickMask hidden"></div>
+</script>
+
+<script type="text/template" id="template_LessonExplorerModule_TocItemGroupView">
+    <div class="backButton"><</div>
+    <div class="groupHeader">{{title}}</div>
+    <ol class="scrollWrapper bb-items"></ol>
+</script>
+
+<script type="text/template" id="template_LessonExplorerModule_TocLessonItemView">
+    <div class="title bb-title">
+        {{title}}
+        <div class="download bb-download">Download</div>
+        <div class="downloadComplete">Downloaded</div>
+        <div class="downloadProgressWrapper"><div class="downloadProgressIndicator bb-downloadProgressIndicator"></div></div>
+    </div>
+</script>
+
+<script type="text/template" id="template_LessonExplorerModule_TocItemView">
+    <div class="title">{{title}}</div>
+    <div class="arrow-right">></div>
+</script>
+<script type="text/template" id="template_TocResourceListView">
+	<div class="rightViewHeader"><span class="resourcesIcon"></span> Resources</div>
+	<div class="bb-currentItemTitle currentItemTitle"></div>
+	<div class="bb-closeButton closeViewButton"></div>
+	<div class="resourceListWrapper">
+		<ol class="bb-resourceList resourceList"></ol>
+	</div>
+</script>
+
+<script type="text/template" id="template_TocResourceList_ResourceItemView">
+	<div class="bb-showResource resourceItem">{{title}}</div>
+	<div class="bb-assignResource assignResourceIcon"></div>
+</script>
+<script type="text/template" id="template_TocStandardsList_StandardsItemView">
+	<div class="standard"><span class="standardCode">{{standardsCode}}</span> <span class="bb-standardsDescription"></span></div>
+</script>
+
+<script type="text/template" id="template_TocStandardsListView">
+	<div class="rightViewHeader"><span class="standardsIcon"></span> Standards</div>
+	<div class="bb-standardsClose closeViewButton"></div>
+	<div class="bb-currentItemTitle currentItemTitle"></div>
+	<ol class="bb-standardsList standardsList"></ol>
+</script>
+<script type="text/template" id="template_LessonViewModule_CustomLessonMenuView">
+	<div class="menuClickMask"></div>
+	<div class="bb-menuInner menuInner">
+		<div class="LessonViewModule_CustomLessonMenu">
+			<div class="menuWrapper">
+				<ul class="menuList"></ul>
+				<div class="region_standards"></div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_CustomLessonMenuItemView">
+	<div class="mainLink bb-mainLink">
+		<div class="navMenuItemIcon"></div>
+		<span>{{title}}</span>
+	</div>
+	<div class="secondaryLink bb-secondaryLink {{^secondaryItem}}hidden{{/secondaryItem}}">
+		<span class="bb-secondaryLinkTitle"></span>
+	</div>
+</script>
+<script type="text/template" id="template_LessonViewModule_LessonView">
+	<div class="region_menuDropdown"></div>
+	<div class="region_mathTools"></div>
+	<div class="region_resourceViewer"></div>
+	<div class="region_telestrateView"></div>
+	<div class="region_navigationView"></div>
+	<div class="bb-customResourceNavOuterWrapper hidden">
+		<div class="bb-customResourceNavLeft customResourceNavButton leftButton"></div>
+		<div class="bb-customResourceNavRight customResourceNavButton rightButton"></div>
+		<div class="bb-customResourceNavClose customResourceNavButton closeCustomButton"></div>
+	</div>
+	<div class="bb-navBackButton navBackButton hidden"></div>
+	<div class="bb-navForwardButton navForwardButton hidden"></div>
+	<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_AssignmentView">
+	<div class="region_lessonView"></div>
+	<hmh-spinner class="bb-assignmentListSpinner spinnerContainer" ></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_MathToolView">
+	<ol class="toolItems"></ol>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_MathToolItemView">
+	<div class="toolItemIcon"></div>
+	<span>{{title}}</span>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_NavigationBar">
+	<h1 class="bb-navBarTitle navBarTitle"></h1>
+	<div class="lessonViewNavMenuOuterWrapper">
+		<div class="region_navigationMenuView lessonViewNavMenu"></div>
+		<div class="bb-customResourceNavLeft lessonViewNavButton leftButton"></div>
+		<div class="bb-customResourceNavRight lessonViewNavButton rightButton"></div>
+		<div class="bb-customResourceNavClose lessonViewNavButton closeCustomButton"></div>
+	</div>
+</script>
+
+
+<script type="text/template" id="template_LessonViewModule_MenuDropdown">
+	<div class="menuWrapper">
+		<button tabindex="-1" class="bb-customMenuTitle title text-ellipsis">{{menuTitle}}</button>
+		<button tabindex="-1" class="bb-navMenuExpandIcon navMenuExpandIcon"></button>
+	</div>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_StandardsItemView">
+	<div class="standardsCode"><span>{{code}}</span></div>
+	<div class="standardsDashContainer"><div class="standardsDash"></div></div>
+	<div class="standardsDescriptionWrapper">
+		<div class="standardsDescription">{{description}}</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_StandardsExpander">
+	<div class="standardsMenuItem">
+		<div class="standardsName">Standards</div>
+		<div class="standardsExpander"></div>
+	</div>
+	<ol></ol>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_MenuView">
+	<div class="menuClickMask"></div>
+	<div class="LessonViewModule_MathDloMenu">
+		<div class="menuWrapper">
+			<ul class="menuList"></ul>
+			<div class="region_standards"></div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_LessonViewModule_MenuItemView">
+	<div class="mainLink bb-mainLink">
+		<div class="navMenuItemIcon"></div>
+		<span>{{title}}</span>
+	</div>
+	<div class="secondaryLink bb-secondaryLink {{^secondaryItem}}hidden{{/secondaryItem}}">
+		<span class="bb-secondaryLinkTitle"></span>
+	</div>
+</script>
+<script type="text/template" id="template_LoginModule">
+    <div class="loginContainer disableAnimation">
+
+        <div class="loginTitle">
+            <div class="loginPlayerIcon"></div>
+        </div>
+
+        <div class="ssoSigninOverlayRegion"></div>
+        <div class="edSigninOverlayRegion"></div>
+
+        <hmh-spinner class="spinnerContainer versionUpdateSpinner" ></hmh-spinner>
+
+        <div class="updateNoticeContainer hidden">
+            Please update to the latest version of HMH Player before logging in.
+        </div>
+
+        <div class="firstTimePinMessage hidden">Set Passcode for Offline Access</div>
+
+        <div class="bb-loginOverlay loginOverlay hidden"></div>
+        <div class="loginControls hidden">
+            <div class="offlineLabel hidden"></div>
+            <div class="dropdownErrorRegion"></div>
+            <div class="firstTimePinRegion"></div>
+            <div class="platformMenuContainer hidden">
+                <div class="platformInfoButton"></div>
+                <div class="platformInfoPopupRegion"></div>
+                <div class="platformListRegion"></div>
+            </div>
+
+            <div class="credentialContainer hidden">
+                <div class="dropdownContainer hidden">
+                    <div class="stateListRegion"></div>
+                    <div class="districtListRegion"></div>
+                    <div class="schoolListRegion"></div>
+                    <div class="dropdownErrorRegion"></div>
+                </div>
+                <div class="containerSeparator"></div>
+                <div class="loginErrorRegion"></div>
+                <div class="loginBox">
+                    <input type="text" id="bb-loginName" class="loginInput" maxlength="100" placeholder="Username"
+                           value=""/>
+                    <input type="password" id="bb-loginPass" class="loginInput" maxlength="100"
+                           placeholder="Password"
+                           value=""/>
+                    <button tabindex="0" id="bb-loginButton" class="loginInput loginButton">Login</button>
+                    <hmh-spinner class="spinnerContainer loginSpinner hidden" ></hmh-spinner>
+                </div>
+            </div>
+             <div class="bb-ssoSpinnnerWrapper ssoSpinnnerWrapper hidden">
+                <hmh-spinner class="spinnerContainer ssoSpinner hidden" ></hmh-spinner>
+            </div>
+            <div class="ssoOfflineLogin ssoOfflineUsersStyle hidden">
+                <div class="ssoUsersOfflineRegion"></div>
+            </div>
+            
+            <div class="ssoKeypadWrapper hidden">
+            	<div class="setPinForOfflineLabel">Set Passcode for Offline Access</div>
+                <div class="pinPadContainer">
+                    <div class="pinKeyboardSsoRegion"></div>
+                </div>
+                <div class="pinErr dropdownErrorRegion"></div>
+            </div>
+            
+        </div>
+
+        <div class="edOfflineLogin edOfflineUsersStyle hidden">
+            <div class="edUsersOfflineRegion"></div>
+        </div>
+        <div class="edKeypadWrapper hidden">
+            <div class="setPinForOfflineLabel">Set Passcode for Ed Offline Access</div>
+            <div class="pinPadContainer">
+                <div class="pinKeyboardEdRegion"></div>
+            </div>
+            <div class="pinErr dropdownErrorRegion"></div>
+        </div>
+        <div class="ssoPinSetConfirmationMessage hidden">
+        	<div class="title1">Your passcode for offline access has been set for this device.</div>
+        	<div class="title2">You can change your passcode in settings (online only).</div>
+        	<div class="divider"></div>
+        	<div class="ssoPinSetConfirmationMessageOkButton"></div>
+        </div>
+        <div class="ssoLoginContainer">
+            <button tabindex="0" id="bb-ssoLoginButton" class="ssoLoginButton">Login using Single Sign On</button>
+            <div class="ssoInfoButtonWrapper">
+            	<div class="ssoInfoButton"></div>
+                <div class="ssoInfoPopupContainer loginPopupItem">
+				    <div class="popupTriangle"></div>
+				    <div class="popupTextWrapper">
+				        <div class="popupHeader">Single Sign On?</div>
+				        <div class="popupBody">If your school district is single sign on enabled, tap the teal button.<br />If you are not sure if your school district is single sign on enabled, you can ask your teacher.</div>
+				    </div>
+				</div>
+			</div>
+        </div>
+            
+        <div class="ssoSigninContainer">
+            <button tabindex="0" id="bb-ssoSigninButton" class="ssoSigninButton">Login with SSO</button>
+        </div>
+
+
+        <div class="edPinSetConfirmationMessage hidden">
+            <div class="title1">Your passcode for offline access has been set for this device.</div>
+            <div class="title2">You can change your passcode in settings (online only).</div>
+            <div class="divider"></div>
+            <div class="edPinSetConfirmationMessageOkButton"></div>
+        </div>
+        <div class="edSigninContainer">
+            <button tabindex="0" id="bb-edSigninButton" class="edSigninButton">Login to Ed</button>
+        </div>
+        
+        <div class="loginHelpContainer">
+            <div class="bb-helpLink" tabindex="0">Login help</div>
+            <div class="bb-registerLink" tabindex="0">Not registered?</div>
+            <div class="bb-forgotPassLink" tabindex="0">Forgot login details?</div>
+        </div>
+        
+        <div class="termsContainer">
+            <div>
+                <span><a href="http://www.hmhco.com/common/privacy-policy">Privacy Policy</a></span>
+                <span><a href="http://www.hmhco.com/common/hmh-player-terms-conditions">Terms &
+                    Conditions</a></span>
+            </div>
+        </div>
+
+        <div class="epcAdminLoginContainer hidden">
+            <webview id="epcAdminSupport" src="http://support-review-cert.hrw.com/login_form.jsp" allowtransparency></webview>
+        </div>
+    </div>
+
+    <div class="loginLogo"></div>
+    <div class="debugControls bb-debugControls hidden">
+        <div>
+            <label for="bb-simulateOffline">Environment:</label> <select class="bb-envSelector envSelector"/>
+        </div>
+        {{!<div>}}
+            {{!<label for="bb-simulateOffline">Offline mode:</label> <input type="checkbox" id="bb-simulateOffline"/>}}
+        {{!</div>}}
+        <div>
+            <label for="bb-debugGradeBand">Grade Band:</label>
+            <select id="bb-debugGradeBand">
+                <option value="">Default</option>
+                <option value="KG">KG</option>
+                <option value="MS">MS</option>
+                <option value="HS">HS</option>
+            </select>
+        </div>
+        <div>
+            <label for="bb-packerPlDebug">LSI Debug</label>
+            <input type="checkbox" id="bb-packerPlDebug"/>
+        </div>
+        <div>
+            <input type="button" id="bb-tryReLogin" value="Try Relogin"/>
+        </div>
+        <div>
+            <input type="button" id="bb-clearStorage" value="Clear Storage"/>
+        </div>
+        <div>
+            <input type="button" id="bb-debugFillIn" value="District/School"/>
+        </div>
+        <div>
+            <input type="button" class="bb-debugEPCAdmin hidden" value="ePC Admin Login"/>
+        </div>
+    </div>
+</script>
+
+<script type="text/template" id="template_LoginModule_popupItem">
+    <div class="popupTriangle"></div>
+    <div class="popupTextWrapper">
+        <div class="popupHeader"></div>
+        <div class="popupBody"></div>
+    </div>
+</script>
+
+
+<script type="text/template" id="template_LoginModule_SSO">
+    <div class="sso-modal-container">
+        <div class="sso-modal">
+            <div class="closeButton"></div>
+            <webview class="sso-webview" partition="hmhplayerSso"></webview>
+            <hmh-spinner class="loadingSpinner" ></hmh-spinner>
+        </div>
+    </div>
+</script>
+
+<script type="text/template" id="template_LoginModule_Ed">
+    <div class="ed-modal-container">
+        <div class="ed-modal">
+            <div class="closeButton"></div>
+            <webview class="ed-webview" partition="hmhplayerEd"></webview>
+            <hmh-spinner class="loadingSpinner" ></hmh-spinner>
+        </div>
+    </div>
+</script>
+<template id="template_MyNoteBookModule">
+	<div class="header">
+		<div class="mainTitle">
+			<div class="bb-boardTitle"></div>
+			<div class="bb-boardTitleSharedIcon sharedIcon hidden"></div>
+			<div class="bb-boardSubTitle"></div>
+		</div>
+		<div class="buttonContainer">
+			<a tabindex="-1" href="#" class="bb-returnBoardButton returnBoardButton hidden"></a>
+			<a tabindex="-1" href="#" class="bb-shareCurrentBoardButton shareCurrentBoardButton hidden"></a>
+			<a tabindex="-1" href="#" class="bb-addItemButton addItemButton"></a>
+			{{#shouldShowClassSelectorButton}}
+				<a tabindex="-1" href="#" class="bb-changeClassButton changeClassButton"></a>
+			{{/shouldShowClassSelectorButton}}
+			<a tabindex="-1" href="#" class="bb-changeSortButton changeSortButton"></a>
+			<a tabindex="-1" href="#" class="bb-changeViewStyleButton changeViewStyleButton"></a>
+			<div class="bb-sortOptionDropdown sortOptionDropdown hidden">
+				<div class="arrow"></div>
+				<div class="dropdownHeader">Sort by</div>
+				<ol>
+					<li class="bb-sortOption" data="NEWEST"><div class="checkmark"></div>Date: newest to oldest</li>
+					<li class="bb-sortOption" data="OLDEST"><div class="checkmark"></div>Date: oldest to newest</li>
+					<li class="bb-sortOption" data="A_Z"><div class="checkmark"></div>Name: A-Z</li>
+					<li class="bb-sortOption" data="Z_A"><div class="checkmark"></div>Name: Z-A</li>
+				</ol>
+				<div class="sortFilterSeparator"></div>
+				<div class="dropdownHeader">Filter by</div>
+				<ol>
+					<li class="bb-filterOption" data="ALL_ITEMS"><div class="checkmark"></div>All Items</li>
+					<li class="bb-filterOption" data="NOTES"><div class="checkmark"></div>Notes</li>
+					<li class="bb-filterOption" data="HIGHLIGHTS"><div class="checkmark"></div>Highlights</li>
+					<li class="bb-filterOption" data="EBOOK_NOTES"><div class="checkmark"></div>eBook Notes</li>
+					<li class="bb-filterOption" data="QUESTIONS"><div class="checkmark"></div>Questions</li>
+				</ol>
+			</div>
+		</div>
+	</div>
+	<div class="listContainer">
+		<div class="bb-noItemsContainer noItemsContainer">
+			 <div class="bgWrapper">
+				 <div class="icon"></div>
+				 <div class="bb-noItemsHeader header"></div>
+				 <div class="bb-noItemsSubHeader subHeader"></div>
+			 </div>
+		</div>
+		<hmh-spinner class="loadingSpinner bb-loadingSpinner"></hmh-spinner>
+		<div class="horizontalSlideContainer">
+			<div class="scrollContainer regionMainItemGroups"></div>
+			<div class="scrollContainer regionSecondaryItemGroups"></div>
+			<div class="scrollContainer regionTertiaryItemGroups"></div>
+		</div>
+	</div>
+	
+	<div class="toolTrayClickMask bb-toolTrayFlyoutClickMask hidden"></div>
+</template>
+
+<template id="template_MyNoteBookModule_folderListItem">
+	<div class="cardView {{type}}">
+		<div class="cardBody">
+			<div class="title">
+				{{{twoRowTitle}}}
+			</div>
+			<div class="description">
+				{{{descriptionWithLineBreaks}}}
+			</div>
+			<div class="modified">{{modified}}</div>
+		</div>
+		<div class="cardFooter">
+			<div class="bb-typeIcon myNotebookTypeIcon color-{{color}}"></div>
+			<div class="modified">{{{modifiedTwoLineDateStr}}}</div>
+			<a tabindex="-1" class="toolTrayButton bb-toolTrayButton" href="#"></a>
+		</div>
+	</div>
+
+	<div class="listView {{type}}">
+		<div class="myNotebookTypeIcon color-{{color}}"></div>
+		<div class="titleContainer">
+			<div class="title">{{{title}}}</div>
+			<div class="sharedIcon"></div>
+		</div>
+		<div class="modified">{{modified}}</div>
+		<a tabindex="-1" class="toolTrayButton bb-toolTrayButton" href="#"></a>
+	</div>
+
+	<div class="toolTray bb-toolTrayContainer"></div>
+</template>
+
+<template id="template_MyNoteBookModule_itemGroupView">
+	<div class="groupName">{{groupName}}</div>
+	<ol class="bb-itemsList itemsList"></ol>
+</template>
+
+<template id="template_MyNoteBookModule_flyoutItemView">
+	<div class="icon {{type}}"></div><div class="title">{{title}}</div>
+</template>
+
+<template id="template_MyNoteBookMinimizedItemView">
+	<div class="cardFooter {{type}}">
+		<div class="bb-typeIcon myNotebookTypeIcon color-{{color}}"></div>
+		<div class="modified">{{{modifiedTwoLineDateStr}}}</div>
+		<div class="toolTrayButton"></div>
+	</div>
+</template>
+<template id="template_MyNoteBookAddItemPopup">
+	<div class="container">
+		<div class="header">
+			<h2>{{popupDisplayTitle}}</h2>
+			<a tabindex="-1" href="#" class="bb-cancel xCloseButton"></a>
+		</div>
+		{{^newBoardMode}}
+			<div class="body">
+				<div class="optionWrapper boardWrapper">
+					<a tabindex="-1" href="#" class="bb-newBoard newBoard"></a>
+					<div>Board</div>
+				</div>
+				<div class="optionWrapper noteWrapper">
+					<a tabindex="-1" href="#" class="bb-newNote newNote"></a>
+					<div>Note</div>
+				</div>
+			</div>
+		{{/newBoardMode}}
+		{{#newBoardMode}}
+			<div class="body">
+				<div class="boardNameWrapper">
+					<span>Board Name</span>
+					<input class="bb-boardName boardName" type="text" placeholder="Enter a board name" maxlength="25" value="{{newBoardName}}">
+				</div>
+			</div>
+			<div class="footer">
+				<a tabindex="-1" href="#" class="bb-cancel">Cancel</a>
+				<a tabindex="-1" href="#" class="bb-confirm">{{confirmText}}</a>
+			</div>
+		{{/newBoardMode}}
+	</div>
+</template>
+<template id="template_MyNoteBookClassSelectorPopup">
+	<div class="container">
+		<div class="header">
+			<h2>Shared Student Boards</h2>
+			<a tabindex="-1" href="#" class="bb-cancel xCloseButton"></a>
+		</div>
+		<div class="body">
+			<h3>Choose a class to view students' shared boards.</h3>
+			<ol class="regionSectionsList"></ol>
+		</div>
+		<div class="footer">
+			<a tabindex="-1" href="#" class="bb-cancel">Cancel</a>
+			<a tabindex="-1" href="#" class="bb-confirm">View</a>
+		</div>
+	</div>
+</template>
+
+<template id="template_MyNoteBookClassSelectorPopupSectionItem">
+	<div class="checkbox"></div>
+	<div class="title">{{name}}</div>
+</template>
+<script type="text/template" id="template_MyNoteBookPopup_ItemEditorPopup">
+	<div class="container {{noteType}}">
+		<div class="header">
+			<div class="bb-myNotebookTypeIcon myNotebookTypeIcon"></div>
+			<h2>{{title}}</h2>
+			<a tabindex="-1" href="#" class="bb-cancel xCloseButton"></a>
+		</div>
+		<div class="body">
+			<div class="region_noteContent"></div>
+		</div>
+		<div class="footer">
+			<a tabindex="-1" href="#" class="bb-cancel">Cancel</a>
+			{{#editable}}
+				<a tabindex="-1" href="#" class="bb-confirm">Save</a>
+			{{/editable}}
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_EbookAnnotationPopupBody">
+	<hmh-spinner class="bb-spinner spinner"></hmh-spinner>
+	<div class="bb-contentWrapper contentWrapper">
+		<div class="bb-highlightTools highlightTools{{^showHighlightTools}} hidden{{/showHighlightTools}}{{^editable}} disabled{{/editable}}">
+			<div class="bb-highlightColorButton highlightColorButton colorYellow" data-color="3"></div>
+			<div class="bb-highlightColorButton highlightColorButton colorGreen" data-color="2"></div>
+			<div class="bb-highlightColorButton highlightColorButton colorBlue" data-color="1"></div>
+			<div class="bb-highlightColorButton highlightColorButton colorPink" data-color="4"></div>
+			<div class="bb-highlightStyleButton highlightStyleButton styleHighlight" data-style="0"></div>
+			<div class="bb-highlightStyleButton highlightStyleButton styleUnderline" data-style="1"></div>
+		</div>
+		<div class="annotationWrapper {{noteType}}"></div>
+		<div class="bb-annotationBodyTextWrapper annotationBodyTextWrapper {{noteType}}">
+			<div class="highlightWrapper">
+				<span class="bb-highlightText highlightText{{^isHighlight}} hidden{{/isHighlight}}">{{{htmlBodyText}}}</span>
+			</div>
+			<textarea class="bb-bodyText bodyText{{#isHighlight}} hidden{{/isHighlight}}" maxlength="1000"
+					  {{^editable}}disabled{{/editable}}>{{bodyText}}</textarea>
+		</div>
+		<div class="highlightCommentWrapper {{noteType}}">
+			<textarea class="bb-highlightComment highlightComment{{^isHighlight}} hidden{{/isHighlight}}" {{#editable}}placeholder="Enter a comment here"{{/editable}}
+					  maxlength="1000" {{^editable}}disabled{{/editable}}>{{highlightComment}}</textarea>
+		</div>
+	</div>
+</script>
+<template id="template_MyNoteBookMoveToPopup">
+	<div class="container {{noteType}}">
+		<div class="header">
+			<h2>Move To:</h2>
+			<a tabindex="-1" href="#" class="bb-cancel xCloseButton"></a>
+		</div>
+		<div class="body">
+			<h3>Choose a location to move it to</h3>
+			<div class="folderListRegion"></div>
+		</div>
+		<div class="footer">
+			<a tabindex="-1" href="#" class="bb-cancel">Cancel</a>
+			<a tabindex="-1" href="#" class="bb-confirm">Move</a>
+		</div>
+	</div>
+</template>
+
+<template id="template_MyNoteBookMoveToPopupFolderItem">
+	<div class="checkbox"></div>
+	<div class="listItemIndicator"></div>
+	<div class="title text-ellipsis">{{title}}</div>
+</template>
+<template id="template_MyNoteBookSharePopup">
+	<div class="container">
+		<div class="header">
+			<h2><b>Share Board:</b> {{boardTitle}}</h2>
+			<a tabindex="-1" href="#" class="bb-cancel xCloseButton"></a>
+		</div>
+		<div class="body">
+			<h3>Choose a teacher to share this board with.</h3>
+			<ol class="regionTeacherList"></ol>
+			<hmh-spinner class="bb-spinner spinner"></hmh-spinner>
+		</div>
+		<div class="footer">
+			<a tabindex="-1" href="#" class="bb-cancel">Cancel</a>
+			<a tabindex="-1" href="#" class="bb-confirm">Share</a>
+		</div>
+	</div>
+</template>
+
+<template id="template_MyNoteBookSharePopupItem">
+	<div class="checkbox"></div>
+	<div class="title">{{name}}</div>
+</template>
+
+<script type="text/template" id="template_MyStuffModule_GroupCardMenuOptionsView">
+	<div class="overlay"></div>
+    <div class="upArrow"></div>
+    <div class="menuOptionContainer">
+        <div class="bb-editBtn editBtn groupOption">Edit</div>
+        <div class="bb-shareBtn shareBtn groupOption">Share</div>
+        <div class="bb-keepOnDeviceBtn keepOnDeviceBtn groupOption">Keep On Device</div>
+        <div class="bb-deleteBtn deleteBtn groupOption">Delete</div>
+    </div>
+</script>
+
+
+<script type="text/template" id="template_MyStuffModule_GroupCardsItemView">
+    <div class="cardBody">
+        <button tabindex="-1" class="expandBtn bb-expandBtn">^</button>
+        <div class="groupCardTitle">{{title}}</div>
+        <div class="cardDetailWrapper bb-cardDetailWrapper">
+            <div>Last opened</div>
+            {{lastOpened}}
+        </div>
+    </div>
+    <div class="cardFooter bb-cardFooter">
+        <div class="bb-menuOptionsBtn menuOptionsBtn"></div>
+    </div>
+    <div class="menuOptionRegion hidden"></div>
+</script>
+
+
+<script type="text/template" id="template_MyStuffModule_ListItemView">
+	<div class="ListBody">
+		<div class="groupColorIcon"></div>
+		<div class="groupCardTitle">{{title}}</div>
+		<div class="groupLastOpened">{{lastOpened}}</div>
+		<div class="trayToggleButton"></div>
+	</div>
+</script>
+<script type="text/template" id="template_MyStuffModule_ItemCardMenuOptionsView">
+	<div class="overlay"></div>
+	<div class="upArrow"></div>
+	<div class="menuOptionContainer">
+		<div class="bb-editBtn editBtn itemOption">Edit</div>
+		<div class="bb-moveBtn shareBtn itemOption">Move</div>
+		<div class="bb-copyBtn shareBtn itemOption">Copy</div>
+		<div class="bb-shareBtn shareBtn itemOption">Share</div>
+		<div class="bb-removeBtn deleteBtn itemOption">Remove from Device</div>
+		<div class="bb-deleteBtn deleteBtn itemOption">Delete</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_MyStuffModule_ItemCardsItemView">
+	<div class="cardBody">
+		<button tabindex="-1" class="expandBtn bb-expandBtn">^</button>
+		<div class="itemCardTitle">{{title}}</div>
+		<div class="cardDetailWrapper bb-cardDetailWrapper"></div>
+	</div>
+	<div class="cardFooter bb-cardFooter">
+		<div class="bb-menuOptionsBtn menuOptionsBtn"></div>
+	</div>
+	<div class="menuOptionRegion hidden"></div>
+</script>
+
+<script type="text/template" id="template_MyStuffModule_ItemCardsView">
+	<ol class="bb-itemCardsCollection itemCardsCollection"></ol>
+	<div class="bb-addItemPopup addItemPopup hidden"></div>
+</script>
+
+<script type="text/template" id="template_MyStuffModule_ItemAddNewPopup">
+	<div class="popupContainer">
+		<div class="titleContainer">
+			<div class="popupCloseIcon"></div>
+			<div class="titleText">Where would you like to add content from?</div>
+		</div>
+
+		<div class="contentOptionsContainer">
+			<div class="upload">
+				<div class="uploadImage"></div>
+				<div class="uploadText">Upload</div>
+			</div>
+
+			<div class="write">
+				<div class="writeImage"></div>
+				<div class="writeText">Write</div>
+			</div>
+
+			<div class="link">
+				<div class="linkImage"></div>
+				<div class="linkText">Link</div>
+			</div>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template_MyStuffModule">
+	<div class="region_header">
+		<div class="spacer"></div>
+		<div class="myStuffTitle">
+			<div class="titleText"> My Stuff </div>
+		</div>
+		<div class="myStuffIconContainer">
+			<span class="addNewButton iconStyle"></span>
+			<span class="searchButton iconStyle"></span>
+			<span class="groupListButton iconStyle"></span>
+			<span class="groupGridButton iconStyle"></span>
+			<span class="closeMyStuffButton iconStyle"></span>
+			<span class="itemsGoBackButton iconStyle"></span>
+		</div>
+	</div>
+	<div class="contentRegion">
+		<div class="region_groupList"></div>
+		<div class="region_groupGrid"></div>
+		<div class="region_activeGroup"></div>
+		<div class="region_groupItemsView"></div>
+	</div>
+	<div class="region_popupContainer hidden"></div>
+</script>
+
+<script type="text/template" id="template_MyStuffModule_GroupEditPopup">
+	<div class="popupBorder">
+		<div class="popupTitleContainer containers">
+			<span class="bb-popupTitlePrefix popupTitlePrefix"></span>
+			<span class="bb-popupTitle popupTitle"></span>
+		</div>
+		<button tabindex="-1" class="bb-closeBtn closeBtn">X</button>
+		<form method="" action="javascript:;">
+			<div class="boardNameContainer containers">
+				<span class="boardName">Board Name</span>
+				<input type="text" name="title" class="bb-title"/>
+			</div>
+			<div class="colorContainer containers">
+				<span>Color</span>
+
+				<div class="bb-colorSelector colorSelector">
+					<input type="radio" name="colorCode" value="0" class="colorOption color0"/>
+					<input type="radio" name="colorCode" value="1" class="colorOption color1"/>
+					<input type="radio" name="colorCode" value="2" class="colorOption color2"/>
+					<input type="radio" name="colorCode" value="3" class="colorOption color3"/>
+					<input type="radio" name="colorCode" value="4" class="colorOption color4"/>
+					<input type="radio" name="colorCode" value="5" class="colorOption color5"/>
+				</div>
+			</div>
+			<div class="tagContainer containers">
+				<div class="bb-tagLabel tagLabel"></div>
+				<div class="tagList">
+					<span>Notes x</span>
+					<span>Notebook x</span>
+					<span>Thoughts x</span>
+					<span>+</span>
+				</div>
+			</div>
+			<div class="editFooter containers ">
+				<input class="bb-saveBtn saveBtn" type="submit" value="Save"/>
+
+				<hmh-spinner class="spinnerContainer bb-savingSpinner hidden" ></hmh-spinner>
+			</div>
+		</form>
+	</div>
+</script>
+
+<script type="text/template" id="template_NoteToolModule">
+	<div class="bb-resizeHandle resizeHandle"></div>
+	<div class="header">
+		<input class="bb-noteTitle noteTitle" type="text" placeholder="Enter a Note Title" tabindex="-1" maxlength="40">
+		<div class="bb-fullScreenToggleButton fullScreenToggleButton"></div>
+		<div class="bb-tagEditorToggleButton tagEditorToggleButton"></div>
+	</div>
+	<div class="bb-contentArea contentArea" tabindex="-1">
+		<div class="region_tagContainer"></div>
+		<div class="region_ckEditor"></div>
+	</div>
+	<div class="footer">
+		<div class="bb-closeNoteToolButton closeNoteToolButton">Cancel</div>
+		<div class="bb-saveNoteToolButton saveNoteToolButton">Save</div>
+		<hmh-spinner class="bb-spinner hidden"></hmh-spinner>
+	</div>
+</script>
+
+<script type="text/template" id="template_NoteToolModule_TagCollectionView">
+	<div class="tagsLabel">Tags:</div>
+	<div class="bb-tagContainer tagContainer"></div>
+	<div class="bb-addTagButton addTagButton"></div>
+	<div class="bb-showAllTagsButton showAllTagsButton">...</div>
+	<div class="bb-hideTagEditorButton hideTagEditorButton">Hide</div>
+</script>
+
+
+<script type="text/template" id="template_NoteToolModule_TagItemView">
+	{{#isEditable}}
+	<input class="bb-editableTagInput editableTagInput" type="text">
+	{{/isEditable}}
+	{{^isEditable}}
+	<div class="bb-nonEditableTag nonEditableTag">{{tagText}}</div>
+	{{/isEditable}}
+
+	{{#isDeletable}}
+	<div class="bb-removeTagButton removeTagButton">x</div>
+	{{/isDeletable}}
+</script>
+<script type="text/template" id="template_NotificationModule_NotificationItemView">
+	<div class="notificationIconWrapper">
+		<div class="bb-notificationAlert notificationAlert hidden"></div>
+		<div class="bb-notificationSync notificationSync hidden"></div>
+	</div>
+	<div class="notificationTextWrapper">
+		<div class="bb-title notificationAssignmentTitle">{{title}}</div>
+		<div class="bb-notificationPmtTitle notificationAssignmentTitle hidden">{{subTitle}}</div>
+		<div class="bb-message notificationMessage">{{message}}</div>
+	</div>
+	<button tabindex="-1" class="bb-closeNotification xicon"></button>
+</script>
+
+<script type="text/template" id="template_NotificationModule">
+	<div class="region_notificationListRegion"></div>
+</script>
+<script type="text/template" id="template_PerformanceTaskStudentResponseView">
+	<div class="region_resourceViewer"></div>
+	<div class="bb-expandButton expandButton"></div>
+	<div class="gradingViewContainer">
+		<div class="bb-resizable resizable">
+			<div class="header">
+				<div class="studentName">{{studentName}}</div>
+				<div class="assignmentTitle">{{assignmentTitle}}</div>
+				<div class="assignmentScoreLabel{{^readOnly}} hidden{{/readOnly}}">Score:</div>
+				<div class="bb-score assignmentScoreValue{{^readOnly}} hidden{{/readOnly}}">{{assignmentScore}}%</div>
+				<div class="bb-printButton printButton"></div>
+				<div class="bb-commentIndicator commentIndicator">{{commentCount}}</div>
+				<div class="bb-optionsMenuButton optionsMenuButton {{#readOnly}}hidden{{/readOnly}}"></div>
+			</div>
+			<div class="bb-essayContent essayContent">
+				<webview class="bb-essayContentWv"></webview>
+			</div>
+			<a tabindex="-1" class="bb-closeButton closeButton {{#readOnly}}hidden{{/readOnly}}">Close</a>
+			<div class="bb-resizeHandle resizeHandle {{#readOnly}}hidden{{/readOnly}}"></div>
+		</div>
+		<div class="region_optionsMenu"></div>
+	</div>
+	<div class="region_perfTaskSidebar"></div>
+	<hmh-spinner class="bb-spinner spinner"></hmh-spinner>
+</script>
+<script type="text/template" id="template_PerformanceTaskView">
+	<div class="region_resourceViewer"></div>
+	<div class="region_writingTool"></div>
+	<div class="region_perfTaskSidebar"></div>
+	<div class="bb-openWritingToolButton openWritingToolButton"></div>
+	<hmh-spinner class="bb-loadingSpinner loadingSpinner"></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_PerformanceTaskView_PromptView">
+	<div class="promptHeader">Prompt</div>
+	<div class="region_promptWebview"></div>
+	<hmh-spinner></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_PerformanceTaskView_WritingToolView">
+	<div class="header">
+		<div class="rightHeaderContent">
+			<div class="bb-saveStateText saveStateText"></div>
+			<div class="bb-commentIndicator commentIndicator">{{commentCount}}</div>
+			<div class="bb-optionsMenuButton optionsMenuButton"></div>
+		</div>
+	</div>
+	<div class="bb-wordCount wordCount">0 words</div>
+	<div class="bb-clickMask clickMask"></div>
+	<div class="region_optionsMenu"></div>
+	<div class="region_ckEditor"></div>
+	<div class="footer">
+		<a tabindex="-1" class="bb-closeEssayButton closeEssayButton">Close</a>
+		<a tabindex="-1" class="bb-turnInButton turnInEssayButton">Submit</a>
+	</div>
+	<div class="bb-resizeHandle resizeHandle"></div>
+</script>
+
+<script type="text/template" id="template_performanceTaskOptionsMenu">
+	{{#showExtraOptions}}
+	<div class="buttonWrapper">
+			<div class="bb-scoreButton scoreButton optionButton">Score</div>
+			<div class="bb-returnButton returnButton optionButton">Return To Student</div>
+	</div>
+	<div class="separator"></div>
+	{{/showExtraOptions}}
+	<div class="resourceDropdownHeader">Resources</div>
+	<div class="region_resourceList"></div>
+</script>
+
+<script type="text/template" id="template_performanceTaskResourceDropdownItem">
+	<div class="resourceItemTitle">{{title}}</div>
+</script>
+
+<script type="text/template" id="template_performanceTaskResponsePopup">
+	<div class="responsePopupBody">
+		<div class="popupTitle">{{title}}</div>
+		<div class="inputWrapper">
+			<div class="region_scoreDropdown {{^shouldShowScoreDropdown}}hidden{{/shouldShowScoreDropdown}}"></div>
+			{{#secondaryPlaceholderText}}<textarea tabindex="1" class="secondaryTextField bb-secondaryTextField"
+												   placeholder="{{secondaryPlaceholderText}}"></textarea>{{/secondaryPlaceholderText}}
+			<textarea tabindex="2" class="primaryTextField bb-primaryTextField" placeholder="{{primaryPlaceholderText}}"></textarea>
+		</div>
+		<div class="buttonContainer">
+			<button tabindex="-1" class="bb-cancel">Cancel</button>
+			<button tabindex="-1" class="bb-confirm confirmButton">{{submitButtonText}}</button>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_performanceTaskScorePopupGradePicker">
+	<div class="bb-showDropdownButton showDropdownButton">
+		<div class="selectedGrade">{{selectedGrade}}</div>
+	</div>
+	<div class="bb-gradeList gradeList"></div>
+</script>
+
+<script type="text/template" id="template_PerformanceTaskView_SidebarView">
+	<div class="region_commentView"></div>
+	<div class="region_turnItInView"></div>
+	<hmh-spinner></hmh-spinner>
+</script>
+
+<script type="text/template" id="template_PerformanceTaskView_CommentSidebarView">
+	<div class="sidebarHeader">Comments</div>
+	<div class="bb-commentsContainer commentsContainer"></div>
+</script>
+
+<script type="text/template" id="template_PerformanceTaskView_TurnItInSidebarView">
+	<div class="sidebarHeader">Turnitin</div>
+	<div class="bb-closeSidebarButton closeSidebarButton"></div>
+	<div class="turnItInDescription">{{description}}</div>
+	<div class="turnItInScore">{{score}}</div>
+	<button tabindex="-1" class="resultsButton">{{resultsButtonText}}</button>
+	<button tabindex="-1" class="eRaterButton">e-Rater<sup>&reg;</sup></button>
+</script>
+
+<script type="text/template" id="template_PerformanceTaskView_CommentItemView">
+	<div class="commentName">{{name}}</div>
+	<div class="commentMessage">{{message}}</div>
+	<div class="commentDate">{{date}}</div>
+</script>
+
+<template id="template_RceNavigatorModule">
+  <div class="splashLogo">
+    <hmh-spinner class="bb-spinner spinner"></hmh-spinner>
+  </div>
+  <div class="region_toc"></div>
+  <div class="region_webview"></div>
+</template>
+
+<script type="text/template" id="template_RceVolumesModule">
+	<div class="region_activeRceView"></div>
+	<div class="bb-volumeSelectorOverlay volumeSelectorOverlay">
+		<div class="left">
+			<div class="tocTitle">Table of Contents</div>
+			<div class="region_volumeSelectorTreeView"></div>
+			<div class="borderShadow"></div>
+		</div>
+		<div class="right">
+			<div class="mainLoadingOverlay">
+				<div class="logo"></div>
+			</div>
+		</div>
+	</div>
+    <div class="region_telestrateView"></div>
+</script>
+
+<script type="text/template" id="template_RceVolumesModule_RceViewer">
+	<div class="bb-sidebarContainer sidebarContainer">
+		<div class="bb-closeSidebarBtn closeSidebarBtn"></div>
+		<div class="region_sidebar"></div>
+	</div>
+
+
+	<div class="bb-fullScreenViewWrapper fullScreenViewWrapper">  
+		<div class="region_fullScreenResources"></div>
+	</div>
+	
+	<div class="bb-sidebarRightViewWrapper sidebarRightViewWrapper">
+		<div class="region_lessonActions"></div>
+		<div class="region_rightResources"></div>
+		<div class="bb-closeSidebarRightView closeSidebarRightView"></div>
+		<div class="bb-loadingOverlay mainLoadingOverlay">
+			<div class="logo"></div>
+            <hmh-spinner class="bb-loadingSpinner"></hmh-spinner>
+		</div>
+	</div>
+	
+	<div class="bb-mainContentArea mainContentArea">
+		 <div class="region_webview">
+            <div class="webviewWrapper">  
+            </div>
+        </div> 
+		<div class="region_lessonVolumesOverlay lessonVolumesOverlay hidden"></div>
+		<div class="mask bb-mainViewMask"></div>
+	</div> 
+	<div class="popupContainer"></div> 
+</script>
+
+
+<script type="text/template" id="template_RceVolumesModule_LoaderView">
+<div class="region_mainRegion"></div>
+</script>
+
+
+<script type="text/template" id="template_RceVolumesModule_EbookPickerViewItem">
+{{title}}
+</script>
+
+  
+<script type="text/template" id="template_RceVolumesModule_SidebarView">
+	<a tabindex="-1" href="#" class="bb-navBackToVolumes navBackToVolumes hidden">Volumes</a>
+	<div class="contentContainer">
+		<hmh-spinner class="spinnerContainer bb-spinner" ></hmh-spinner>
+		<div class="region_tocView"></div> 
+	</div>
+	<div class="bb-slideupContainer slideupContainer">
+		<div class="slideupCloseBtn bb-closeSlideup"></div> 
+		<div class="region_resources resourcesSlideup"></div>
+	</div>
+	<div class="borderShadow"></div>
+</script>
+
+<script type="text/template" id="template_RceVolumesModule_TocView">
+	<div class="bb-tocCustomLessonsToggle tocCustomLessonsToggle">
+		<div class="bb-tocToggle tocToggle ebookToggle"><span>Table of Contents</span></div>
+		<div class="bb-customLessonToggle customLessonToggle ebookToggle"><span>Custom Lessons</span></div>
+	</div>
+	<div class="bb-sortDropdownLabel sortDropdownLabel hidden">{{currentSortLabel}}</div>
+	<div class="region_sortOptions"></div>
+	<div class="region_toc toc"></div>
+	<div class="region_customLessons customLessons"></div>
+	<div class="clickMask bb-clickMask hidden"></div>
+</script>
+ 
+
+<script type="text/template" id="template_RceVolumesModule_ResourcesView">
+	<div class="resourcesHeader">
+		<div class="resourcesViewHeader"><span class="icon"></span>Resources</div>
+		<div class="bb-closeButton resourceClose"></div>  
+	</div>
+	<div class="bb-items resourceList"></div>
+</script>
+
+<script type="text/template" id="template_RceVolumesModule_ResourcesItemView">
+	<div class="bb-title title">{{title}}</div>
+	<div class="bb-subtitle subtitle">{{subtitle}}</div>
+</script>
+
+<script type="text/template" id="template_RcePlayerModule">
+    <div class="container">
+        <webview class="bb-rceWebView" src="{{initializedRceUrl}}" width="640" height="480"></webview>
+    </div>
+</script>
+<script type="text/template" id="template_ResourceViewerModule_ResourceViewer">
+	<div class="bb-dlo_container dlo_container"></div>
+	<webview class="bb-resource_wv resource_wv"></webview>
+	<div class="bb-html_view html_view"></div>
+<div class="bb-popupContainer popupContainer">
+</div>
+<div class="bb-alertContainer alertMask hidden">
+    <div class="alertBox">
+        <div class="bb-alertText alertText"></div>
+    </div>
+</div>
+</script>
+
+
+<script type="text/template" id="template_ResourceViewerModule_DloView">
+	<div class="bb-webview dlo_container"></div>
+	<hmh-spinner class="bb-spinner spinner" ></hmh-spinner>
+</script>
+<script type="text/template" id="template_SideMenuModule">
+	<div class="header">
+		<div class="hidden bb-sideLoadedMessage sideLoadedMessage">Using Side loaded TOC</div>
+		<div class="bb-headerImage headerImage"></div>
+		<div class="bb-homeButton homeButton"></div>
+	</div>
+	<div class="bb-contentWrapper contentWrapper">
+		<div class="listContainer">
+			<div class="region_sections"></div>
+			<div class="region_tools"></div>
+		</div>
+		<div class="bb-helpButton helpButton sideMenuButton">Help</div>
+		<div class="bb-settingsButton settingsButton sideMenuButton">Settings</div>
+	</div>
+	<div class="footer">
+		<div class="bb-logoutButton logoutButton sideMenuButton">
+			<div class="bb-displayName displayName">{{userDisplayName}}</div>
+			<div class="logoutText">Logout</div>
+		</div>
+	</div>
+	<div class="bb-helpContainer helpContainer slideIn">
+		<div class="bb-hideHelpButton hideHelpButton itemLabel">Help</div>
+		<div class="helpLink bb-studentQuickStart studentQuickStart">
+			<div class="itemLabel">Student Quickstart Guide</div>
+			<div class="itemImage"></div>
+		</div>
+		<div class="helpLink bb-teacherQuickStart teacherQuickStart">
+			<div class="itemLabel">Teacher Quickstart Guide</div>
+			<div class="itemImage"></div>
+		</div>
+		<div class="helpLink bb-onlineHelp onlineHelp">
+			<div class="itemLabel">Online Help</div>
+			<div class="itemImage"></div>
+		</div>
+	</div>
+	<div class="bb-settingsContainer settingsContainer slideIn">
+		<div class="bb-hideSettingsButton hideSettingsButton itemLabel">Settings</div>
+		<div class="bb-versionContainer versionContainer">
+			<div class="itemLabel">Version</div>
+			<div class="itemLabel versionNumber">--</div>
+		</div>
+		<div class="bb-downloadManagerContainer downloadManagerContainer">
+			<div class="itemLabel">Download Manager</div>
+			<div class="itemImage"></div>
+		</div>
+		<div class="bb-syncManagerContainer downloadManagerContainer">
+			<div class="itemLabel">Sync Manager</div>
+			<div class="itemImage"></div>
+		</div>
+		<div class="bb-passcodeChangeContainer downloadManagerContainer">
+			<div class="itemLabel">Change Passcode</div>
+			<div class="itemImage"></div>
+		</div>
+		<div class="bb-copyrightContainer copyrightContainer">
+			<div class="itemLabel">Copyright</div>
+			<div class="itemImage"></div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template_SideMenuModule-ItemListView">
+	<div class="sectionHeader">{{sectionHeader}}</div>
+	<ol></ol>
+</script>
+
+<script type="text/template" id="template_SideMenuModule-SectionItemView">
+	<a tabindex="-1" class="itemLabel">{{title}}</a>
+	<div class="itemImage"></div>
+</script>
+
+<script type="text/template" id="template_StatusBarModule">
+	<button tabindex="-1" class="hamburgerButton"></button>
+	<button tabindex="-1" class="backButton"></button>
+	<button tabindex="-1" class="bb-doneButton doneButton">Done</button>
+	<button tabindex="-1" class="bb-teacherInformationButton teacherInformationButton"></button>
+	<div class="centerTitle"></div>
+	<div id="region_menuView" class="bb-menuVew hidden"></div>
+	<h1 class="bb-lessonTitle lessonTitle"></h1>
+	<div class="bb-hmhLogo hmhLogo"></div>
+	<div class="bb-toolTray toolTray">
+		<div class="toolTrayItem myNotebookButton bb-myNotebookButton">
+			<div class="toolTrayLabel">Notebook</div>
+		</div>
+		<div class="toolTrayItem freeNoteButton bb-freeNoteButton">
+			<div class="toolTrayLabel">Free Note</div>
+		</div>
+	</div>
+	<div class="statusBarRightButtons">
+		<div class="bb-downloadCloudContainer downloadCloudContainer"></div>
+		<button class="bb-discoverEdButton discoverEdButton"></button>
+		<div class="bb-collabButton collabButton">
+			<div class="bb-collabNotification collabNotification"></div>
+			<div class="bb-collabArrow collabArrow hidden"></div>
+		</div>
+		<button tabindex="-1" class="toolTrayButton"></button>
+		<button tabindex="-1" class="bb-annotationsButton annotationsButton"></button>
+		<button tabindex="-1" class="bb-mathToolsButton mathToolsButton"></button>
+		<button tabindex="-1" class="bb-refreshButton refreshButton"></button>
+		<button tabindex="-1" class="bb-resetButton resetButton"></button>
+	</div>
+</script>
+
+<script type="text/template" id="template_StatusBarModule_MenuDropdown">
+	<div class="menuWrapper">
+		<button tabindex="-1" class="bb-title title text-ellipsis">{{menuTitle}}</button>
+		<button tabindex="-1" class="bb-navMenuExpandIcon navMenuExpandIcon"></button>
+	</div>
+</script>
+<script type="text/template" id="template_syncHistoryModule_overview">
+	<div class="content">
+		<div class="tableHeader">
+			<span class="syncStatus">Sync Status</span>
+			<span class="type">Type</span>
+			<span class="title">Title</span>
+		</div>
+		<div class="region_tableWrapper"></div>
+		<hmh-spinner class="bb-spinnerContainer spinnerContainer {{^loading}}hidden{{/loading}}" ></hmh-spinner>
+	</div> 
+</script>
+
+<script type="text/template" id="template_syncHistoryModule_overview_item">
+	<td class="icon">
+		<div class="syncIcon {{icon}}Icon"></div>
+	</td>
+	<td class="date">{{date}}</td>
+	<td class="type">{{typeTitle}}</td>
+	<td class="title text-ellipsis">{{title}}</td>
+	<td class="viewDetails">View Details</td>
+</script>
+<script type="text/template" id="template_syncItemDetailsModule_details">
+	<div class="tableHeader">
+		<span class="syncHistory">Sync History:</span>
+		<span class="title">{{title}}</span>
+	</div>
+	<div class="region_tableWrapper"></div>
+</script>
+
+<script type="text/template" id="template_syncItemDetailsModule_item">
+	<td class="icon">
+		{{#icon}}<div class="syncIcon {{icon}}Icon"></div>{{/icon}}
+	</td>
+	<td class="date">{{date}}</td>
+	<td colspan=2 class="details"> {{{dataHtml}}} </td>
+</script>
+<script type="text/template" id="template_WaterAppWrapperModule">
+	<div class="region_webview"></div>
+	<a tabindex="-1" href="#" class="bb-close closeButton"></a>
+</script>
+<script type="text/template" id="template_SideLoadContent">
+	<div class="title">Side Load Content Tool</div>
+	<textarea class="bb-jsonContainer" rows="30" cols="120"></textarea>
+	<div class="buttons">
+		<button tabindex="-1" class="bb-cancel">Cancel</button>
+		<button tabindex="-1" class="bb-saveContent">Save</button>
+	</div>
+</script>
+<template id="hmh-spinner">
+
+	<style>
+		:host {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		
+		
+
+		@-webkit-keyframes loadingSpinnerFade {
+			from {
+				opacity: 1;
+			}
+			to {
+				opacity: 0.25;
+			}
+		}
+
+		.outerContainer {
+			min-width: 34px;
+			min-height: 34px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.loadingSpinner {
+			width: 34px;
+			height: 34px;
+			position: relative;
+		}
+
+		.loadingSpinner div {
+			width: 4px;
+			height: 8px;
+			background: #000;
+			position: absolute;
+			left: 44.5%;
+			top: 37%;
+			opacity: 0;
+			-webkit-animation: loadingSpinnerFade 1s linear infinite;
+			-webkit-border-radius: 50px;
+			-webkit-box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+		}
+		
+		:host(.white) .loadingSpinner div {
+			background: #FFF;
+		}
+
+		.loadingSpinner .bar1 {
+			-webkit-transform: rotate(0deg) translate(0, -142%);
+			-webkit-animation-delay: 0s;
+		}
+
+		.loadingSpinner .bar2 {
+			-webkit-transform: rotate(30deg) translate(0, -142%);
+			-webkit-animation-delay: -0.9167s;
+		}
+
+		.loadingSpinner .bar3 {
+			-webkit-transform: rotate(60deg) translate(0, -142%);
+			-webkit-animation-delay: -0.833s;
+		}
+
+		.loadingSpinner .bar4 {
+			-webkit-transform: rotate(90deg) translate(0, -142%);
+			-webkit-animation-delay: -0.75s;
+		}
+
+		.loadingSpinner .bar5 {
+			-webkit-transform: rotate(120deg) translate(0, -142%);
+			-webkit-animation-delay: -0.667s;
+		}
+
+		.loadingSpinner .bar6 {
+			-webkit-transform: rotate(150deg) translate(0, -142%);
+			-webkit-animation-delay: -0.5833s;
+		}
+
+		.loadingSpinner .bar7 {
+			-webkit-transform: rotate(180deg) translate(0, -142%);
+			-webkit-animation-delay: -0.5s;
+		}
+
+		.loadingSpinner .bar8 {
+			-webkit-transform: rotate(210deg) translate(0, -142%);
+			-webkit-animation-delay: -0.41667s;
+		}
+
+		.loadingSpinner .bar9 {
+			-webkit-transform: rotate(240deg) translate(0, -142%);
+			-webkit-animation-delay: -0.333s;
+		}
+
+		.loadingSpinner .bar10 {
+			-webkit-transform: rotate(270deg) translate(0, -142%);
+			-webkit-animation-delay: -0.25s;
+		}
+
+		.loadingSpinner .bar11 {
+			-webkit-transform: rotate(300deg) translate(0, -142%);
+			-webkit-animation-delay: -0.1667s;
+		}
+
+		.loadingSpinner .bar12 {
+			-webkit-transform: rotate(330deg) translate(0, -142%);
+			-webkit-animation-delay: -0.0833s;
+		}
+
+	</style>
+
+	<div class="outerContainer">
+		<div class="loadingSpinner">
+			<div class="bar1"></div>
+			<div class="bar2"></div>
+			<div class="bar3"></div>
+			<div class="bar4"></div>
+			<div class="bar5"></div>
+			<div class="bar6"></div>
+			<div class="bar7"></div>
+			<div class="bar8"></div>
+			<div class="bar9"></div>
+			<div class="bar10"></div>
+			<div class="bar11"></div>
+			<div class="bar12"></div>
+		</div>
+	</div>
+</template>
+	</body>
+</html>
